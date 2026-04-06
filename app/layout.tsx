@@ -6,7 +6,6 @@ const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-playfair',
   weight: ['400', '700', '900'],
-  style: ['normal', 'italic'],
 })
 
 const poppins = Poppins({
