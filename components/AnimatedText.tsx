@@ -8,19 +8,6 @@ interface AnimatedTextProps {
   className?: string;
 }
 
-const letterVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: (i * 0.05) + (arguments.callee.delay || 0),
-      duration: 0.4,
-      ease: 'easeOut',
-    },
-  }),
-};
-
 export default function AnimatedText({
   text,
   delay = 0,
