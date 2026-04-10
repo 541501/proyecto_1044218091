@@ -71,6 +71,25 @@ export default function HolaMundo({
         {description}
       </motion.p>
 
+      {/* Información del usuario */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          delay: subtitleDelay + 0.6,
+          duration: 0.8,
+          ease: 'easeOut',
+        }}
+        className="mt-8 space-y-2 text-white/70"
+      >
+        <p className="font-poppins text-sm md:text-base">
+          <span className="text-cyan-400 font-semibold">Nombre:</span> Juan Gutierrez M.
+        </p>
+        <p className="font-poppins text-sm md:text-base">
+          <span className="text-cyan-400 font-semibold">Documento:</span> 1044218091
+        </p>
+      </motion.div>
+
       {/* Efecto glow animado bajo el texto */}
       <motion.div
         initial={{ opacity: 0 }}
