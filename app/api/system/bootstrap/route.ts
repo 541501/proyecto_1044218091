@@ -1,0 +1,116 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { runMigrations } from '@/lib/pgMigrate';
+import { getSupabaseAdmin } from '@/lib/supabase';
+import { getSystemMode, clearSystemModeCache, recordAudit } from '@/lib/dataService';
+import * as seedReader from '@/lib/seedReader';
+
+const BOOTSTRAP_SECRET = process.env.ADMIN_BOOTSTRAP_SECRET;
+
+export async function POST(req: NextRequest) {
+  try {
+    // Verify bootstrap secret
+    const { secret } = await req.json();
+    if (secret !== BOOTSTRAP_SECRET) {
+      return NextResponse.json({ error: 'Invalid bootstrap secret' }, { status: 403 });
+    }
+
+    // Run migrations
+    const appliedMigrations = await runMigrations();
+
+    // Clear mode cache to re-detect live mode
+    clearSystemModeCache();
+
+    // Insert seed data into Postgres
+    const supabase = getSupabaseAdmin();
+
+    // Insert blocks
+    const seedBlocks = await seedReader.getBlocks();
+    if (seedBlocks.length > 0) {
+      await supabase.from('blocks').insert(
+        seedBlocks.map((b) => ({
+          id: b.id,
+          name: b.name,
+          code: b.code,
+          is_active: b.is_active,
+          created_at: b.created_at,
+        }))
+      );
+    }
+
+    // Insert slots
+    const seedSlots = await seedReader.getSlots();
+    if (seedSlots.length > 0) {
+      await supabase.from('slots').insert(
+        seedSlots.map((s) => ({
+          id: s.id,
+          name: s.name,
+          start_time: s.start_time,
+          end_time: s.end_time,
+          order_index: s.order_index,
+          is_active: s.is_active,
+        }))
+      );
+    }
+
+    // Insert rooms
+    const seedRooms = await seedReader.getRooms();
+    if (seedRooms.length > 0) {
+      await supabase.from('rooms').insert(
+        seedRooms.map((r) => ({
+          id: r.id,
+          block_id: r.block_id,
+          code: r.code,
+          type: r.type,
+          capacity: r.capacity,
+          equipment: r.equipment,
+          is_active: r.is_active,
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+        }))
+      );
+    }
+
+    // Insert seed admin user
+    const seedUsers = await seedReader.getUsers();
+    const adminUser = seedUsers.find((u) => u.role === 'admin');
+    if (adminUser) {
+      await supabase.from('users').insert([
+        {
+          id: adminUser.id,
+          name: adminUser.name,
+          email: adminUser.email,
+          password_hash: adminUser.password_hash,
+          role: adminUser.role,
+          is_active: adminUser.is_active,
+          must_change_password: adminUser.must_change_password,
+          created_at: adminUser.created_at,
+        },
+      ]);
+    }
+
+    // Record bootstrap in audit
+    const auditUser = adminUser || {
+      id: '00000000-0000-0000-0000-000000000001',
+      email: 'admin@classsport.edu.co',
+      role: 'admin' as const,
+    };
+    await recordAudit({
+      user_id: auditUser.id,
+      user_email: auditUser.email,
+      user_role: auditUser.role,
+      action: 'bootstrap',
+      entity: 'system',
+      summary: 'Sistema bootstrapped: migrations aplicadas, bloques/salones/franjas insertados',
+    });
+
+    return NextResponse.json({
+      success: true,
+      appliedMigrations,
+      message: 'Bootstrap completed. System is now in live mode.',
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Bootstrap failed';
+    console.error('[bootstrap]', err);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
