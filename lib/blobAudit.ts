@@ -64,7 +64,7 @@ async function withFileLock<T>(fileKey: string, operation: () => Promise<T>): Pr
 
 /**
  * Append an audit entry to the monthly audit file.
- * Uses get() from SDK (not fetch) for private blobs.
+ * Uses put() and get() from SDK for private blobs.
  */
 export async function appendAudit(entry: AuditEntry): Promise<void> {
   const yyyymm = entry.timestamp.slice(0, 7).replace(/-/g, ''); // "202405"
@@ -76,9 +76,9 @@ export async function appendAudit(entry: AuditEntry): Promise<void> {
 
       // Try to read existing file using SDK get()
       try {
-        const result = await get(blobPath, { token: getBlobToken() });
-        if (result) {
-          const text = await result.blob?.text() || '';
+        const result = await get(blobPath, { token: getBlobToken(), access: 'private' });
+        if (result && result.blob) {
+          const text = await (result.blob as any).text();
           if (text) {
             entries = JSON.parse(text);
           }
@@ -114,12 +114,12 @@ export async function readAuditMonth(yyyymm: string): Promise<AuditEntry[]> {
   const blobPath = `audit/${yyyymm}.json`;
 
   try {
-    const result = await get(blobPath, { token: getBlobToken() });
-    if (!result) {
+    const result = await get(blobPath, { token: getBlobToken(), access: 'private' });
+    if (!result || !result.blob) {
       return [];
     }
 
-    const text = await result.blob?.text() || '';
+    const text = await (result.blob as any).text();
     if (!text) {
       return [];
     }

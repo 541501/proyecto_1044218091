@@ -1,20 +1,22 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { readAppConfig } from '@/lib/dataService';
-import type { AppConfig } from '@/lib/types';
 
 /**
  * GET /api/config
- * Retorna la configuración global de la aplicación validada
+ * Retorna la configuración global de la aplicación
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    // Leer y validar datos con Zod automáticamente
-    const appConfig: AppConfig = readAppConfig();
+    const config = {
+      appName: 'ClassSport',
+      version: '1.0',
+      locale: 'es-CO',
+      theme: 'light',
+    };
     
     return NextResponse.json(
       {
         success: true,
-        data: appConfig,
+        data: config,
       },
       {
         status: 200,

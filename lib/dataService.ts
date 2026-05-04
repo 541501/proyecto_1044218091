@@ -24,6 +24,18 @@ export async function getSystemMode(): Promise<'seed' | 'live'> {
   }
 
   try {
+    // First, try to load seed.json. If it exists, we might be in seed mode.
+    const seed = await seedReader.loadSeed();
+    if (seed && seed.users && seed.users.length > 0) {
+      // seed.json exists and has data — prefer this (easier for local dev)
+      systemMode = 'seed';
+      return 'seed';
+    }
+  } catch (seedErr) {
+    // seed.json doesn't exist or is invalid — proceed to live mode check
+  }
+
+  try {
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from('_migrations')
@@ -33,7 +45,7 @@ export async function getSystemMode(): Promise<'seed' | 'live'> {
     // If we can query, we're in live mode
     systemMode = 'live';
   } catch (err) {
-    // If table doesn't exist or connection fails, we're in seed mode
+    // If table doesn't exist or connection fails, default to seed
     systemMode = 'seed';
   }
 
@@ -155,7 +167,7 @@ export async function createUser(data: CreateUserRequest & { temporaryPassword: 
 /**
  * Update user data (admin only).
  */
-export async function updateUser(id: string, data: UpdateUserRequest): Promise<SafeUser> {
+export async function updateUser(id: string, data: UpdateUserRequest & { password_hash?: string }): Promise<SafeUser> {
   const mode = await getSystemMode();
 
   if (mode === 'seed') {

@@ -9,7 +9,7 @@ export interface User {
   role: 'profesor' | 'coordinador' | 'admin';
   is_active: boolean;
   must_change_password: boolean;
-  last_login_at?: string | null;
+  last_login_at: string | null;
   created_at: string;
 }
 
@@ -51,15 +51,20 @@ interface Seed {
 
 let cachedSeed: Seed | null = null;
 
-async function loadSeed(): Promise<Seed> {
+export async function loadSeed(): Promise<Seed> {
   if (cachedSeed) {
     return cachedSeed;
   }
 
   const seedPath = path.join(process.cwd(), 'data', 'seed.json');
   const content = await fs.readFile(seedPath, 'utf-8');
-  cachedSeed = JSON.parse(content);
-  return cachedSeed;
+  const seedData = JSON.parse(content) as Seed;
+  cachedSeed = seedData;
+  return seedData;
+}
+
+export function clearSeedCache() {
+  cachedSeed = null;
 }
 
 export async function getUsers(): Promise<User[]> {

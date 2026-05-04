@@ -36,6 +36,7 @@ export interface UpdateUserRequest {
   name?: string;
   role?: UserRole;
   is_active?: boolean;
+  must_change_password?: boolean;
 }
 
 export interface LoginRequest {

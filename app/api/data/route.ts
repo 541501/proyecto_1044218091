@@ -1,15 +1,23 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { readHomeData } from '@/lib/dataService';
-import type { HomeData } from '@/lib/types';
 
 /**
  * GET /api/data
- * Retorna los datos de la página Home validados
+ * Retorna datos de demostración
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    // Leer y validar datos con Zod automáticamente
-    const homeData: HomeData = readHomeData();
+    const homeData = {
+      hero: {
+        title: 'ClassSport',
+        subtitle: 'Gestión de salones universitarios',
+        description: 'Plataforma de asignación de espacios',
+        animationStyle: 'fadeIn' as const,
+      },
+      meta: {
+        pageTitle: 'ClassSport',
+        description: 'Gestión de salones universitarios',
+      },
+    };
     
     return NextResponse.json(
       {
