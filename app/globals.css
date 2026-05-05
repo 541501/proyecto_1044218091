@@ -1,19 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Tipografía */
-  --font-playfair: var(--font-playfair);
-  --font-poppins: var(--font-poppins);
-
-  /* Colores principales */
-  --color-bg-dark: #0f0f0f;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #a0a0a0;
-  --color-accent-cyan: #06b6d4;
-  --color-accent-purple: #a855f7;
-  --color-accent-pink: #ec4899;
+  /* ClassSport Color Palette */
+  
+  /* Background */
+  --bg-main: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-alt: #F1F5F9;
+  
+  /* Primary - Azul Institucional */
+  --primary: #1D4ED8;
+  --primary-dark: #1E40AF;
+  --primary-light: #3B82F6;
+  
+  /* Text */
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  
+  /* States */
+  --success: #16A34A;
+  --success-bg: #F0FDF4;
+  --danger: #DC2626;
+  --danger-bg: #FEF2F2;
+  --warning: #D97706;
+  --warning-bg: #FFFBEB;
+  --info: #0EA5E9;
+  --info-bg: #F0F9FF;
+  
+  /* Franja Calendar */
+  --slot-free: #16A34A;
+  --slot-free-bg: #F0FDF4;
+  --slot-occupied: #DC2626;
+  --slot-occupied-bg: #FEF2F2;
+  --slot-past: #94A3B8;
+  --slot-past-bg: #F8FAFC;
+  
+  /* Seed Mode Banner */
+  --seed-bg: #FEF3C7;
+  --seed-text: #92400E;
+  --seed-border: #F59E0B;
+  
+  /* Borders */
+  --border: #E2E8F0;
 }
 
 * {
@@ -24,10 +56,15 @@
 
 html {
   scroll-behavior: smooth;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 body {
-  font-family: var(--font-poppins), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+}
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--color-text-primary);

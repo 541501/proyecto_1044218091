@@ -24,7 +24,7 @@
 | # | Fase | Rol Asignado | Estado | Inicio | Cierre | Resumen |
 |---|---|---|---|---|---|---|
 | 1 | Bootstrap, Login y `dataService` base | Ingeniero Fullstack Senior — Arquitecto del sistema y seguridad | Completada | 04-05-2026 14:30 | 05-05-2026 00:35 | ✅ 22 archivos, 7 API routes, JWT auth, seed mode, typecheck ✓ |
-| 2 | Dashboard, Layout base y página de bootstrap | Diseñador Frontend Obsesivo + Ingeniero de Sistemas | Pendiente | — | — | — |
+| 2 | Dashboard, Layout base y página de bootstrap | Diseñador Frontend Obsesivo + Ingeniero de Sistemas | En progreso | 05-05-2026 00:36 | — | — |
 | 3 | Bloques, Salones y Disponibilidad | Ingeniero Fullstack Senior — Consulta de disponibilidad en tiempo real | Pendiente | — | — | — |
 | 4 | Reservas | Ingeniero Fullstack Senior — Flujo central del sistema y prevención de conflictos | Pendiente | — | — | — |
 | 5 | Reportes y Administración de Usuarios | Ingeniero Fullstack Senior | Pendiente | — | — | — |
