@@ -10,7 +10,25 @@ import { getSupabaseAdmin } from './supabase';
 import * as blobAudit from './blobAudit';
 import * as seedReader from './seedReader';
 import * as pgMigrate from './pgMigrate';
-import { User, SafeUser, LoginRequest, CreateUserRequest, UpdateUserRequest, ChangePasswordRequest, JWTPayload } from './types';
+import { 
+  User, 
+  SafeUser, 
+  LoginRequest, 
+  CreateUserRequest, 
+  UpdateUserRequest, 
+  ChangePasswordRequest, 
+  JWTPayload,
+  Block,
+  Slot,
+  Room,
+  Reservation,
+  ReservationWithDetails,
+  RoomFilters,
+  ReservationFilters,
+  CreateRoomRequest,
+  UpdateRoomRequest,
+  CreateReservationRequest
+} from './types';
 
 // ============================================================================
 // SYSTEM MODE — Determines whether to read from seed or Postgres
@@ -290,4 +308,354 @@ export async function getRoomById(id: string) {
   const supabase = getSupabaseAdmin();
   const { data } = await supabase.from('rooms').select('*').eq('id', id).single();
   return data || null;
+}
+
+/**
+ * Crea un nuevo salón en el bloque especificado
+ * Captura error UNIQUE(block_id, code) y retorna 409 apropiadamente
+ */
+export async function createRoom(userId: string, data: CreateRoomRequest): Promise<Room> {
+  const mode = await getSystemMode();
+  
+  if (mode === 'seed') {
+    throw new Error('No se pueden crear salones en modo seed');
+  }
+
+  const supabase = getSupabaseAdmin();
+  
+  try {
+    const { data: room, error } = await supabase
+      .from('rooms')
+      .insert([{
+        block_id: data.block_id,
+        code: data.code,
+        type: data.type,
+        capacity: data.capacity,
+        equipment: data.equipment || null,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      // Check if it's a UNIQUE constraint violation on (block_id, code)
+      if (error.code === '23505') {
+        const err = new Error('Ya existe un salón con este código en el bloque') as any;
+        err.code = 'DUPLICATE_ROOM_CODE';
+        throw err;
+      }
+      throw error;
+    }
+
+    // Record audit
+    await recordAudit({
+      user_id: userId,
+      user_email: 'unknown',
+      user_role: 'admin',
+      action: 'create_room',
+      entity: 'room',
+      entity_id: room.id,
+      summary: `Salón creado: ${data.code} en bloque ${data.block_id}`
+    });
+
+    return room;
+  } catch (err) {
+    console.error('[createRoom] Error:', err);
+    throw err;
+  }
+}
+
+/**
+ * Actualiza un salón existente
+ */
+export async function updateRoom(id: string, userId: string, data: UpdateRoomRequest): Promise<Room> {
+  const mode = await getSystemMode();
+  
+  if (mode === 'seed') {
+    throw new Error('No se pueden actualizar salones en modo seed');
+  }
+
+  const supabase = getSupabaseAdmin();
+  const updateData: any = { updated_at: new Date().toISOString() };
+  
+  if (data.code !== undefined) updateData.code = data.code;
+  if (data.type !== undefined) updateData.type = data.type;
+  if (data.capacity !== undefined) updateData.capacity = data.capacity;
+  if (data.equipment !== undefined) updateData.equipment = data.equipment;
+  if (data.is_active !== undefined) updateData.is_active = data.is_active;
+
+  try {
+    const { data: room, error } = await supabase
+      .from('rooms')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error('Ya existe un salón con este código en el bloque');
+      }
+      throw error;
+    }
+
+    await recordAudit({
+      user_id: userId,
+      user_email: 'unknown',
+      user_role: 'admin',
+      action: 'update_room',
+      entity: 'room',
+      entity_id: id,
+      summary: `Salón actualizado: ${room.code}`
+    });
+
+    return room;
+  } catch (err) {
+    console.error('[updateRoom] Error:', err);
+    throw err;
+  }
+}
+
+/**
+ * Desactiva un salón — primero verifica si hay reservas futuras (RN-10)
+ * Retorna { warningCount: N } si hay reservas futuras
+ */
+export async function deactivateRoom(id: string, userId: string): Promise<{ warningCount: number }> {
+  const mode = await getSystemMode();
+  
+  if (mode === 'seed') {
+    throw new Error('No se pueden desactivar salones en modo seed');
+  }
+
+  const supabase = getSupabaseAdmin();
+  const today = new Date().toISOString().split('T')[0];
+
+  // Contar reservas futuras confirmadas
+  const { data: futureReservations, error } = await supabase
+    .from('reservations')
+    .select('id', { count: 'exact' })
+    .eq('room_id', id)
+    .eq('status', 'confirmada')
+    .gte('reservation_date', today);
+
+  if (error) {
+    throw error;
+  }
+
+  const warningCount = futureReservations?.length || 0;
+  
+  return { warningCount };
+}
+
+/**
+ * Confirma la desactivación de un salón (después de que admin confirma advertencia)
+ */
+export async function confirmDeactivateRoom(id: string, userId: string): Promise<Room> {
+  const mode = await getSystemMode();
+  
+  if (mode === 'seed') {
+    throw new Error('No se pueden desactivar salones en modo seed');
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  try {
+    const { data: room, error } = await supabase
+      .from('rooms')
+      .update({ 
+        is_active: false,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await recordAudit({
+      user_id: userId,
+      user_email: 'unknown',
+      user_role: 'admin',
+      action: 'deactivate_room',
+      entity: 'room',
+      entity_id: id,
+      summary: `Salón desactivado: ${room.code}`
+    });
+
+    return room;
+  } catch (err) {
+    console.error('[confirmDeactivateRoom] Error:', err);
+    throw err;
+  }
+}
+
+// ============================================================================
+// RESERVATIONS — Placeholder for Fase 4
+// ============================================================================
+
+export async function getReservations(filters?: ReservationFilters): Promise<ReservationWithDetails[]> {
+  const mode = await getSystemMode();
+
+  if (mode === 'seed') {
+    // In seed mode, return empty array for now
+    return [];
+  }
+
+  const supabase = getSupabaseAdmin();
+  let query = supabase
+    .from('reservations')
+    .select(`
+      *,
+      room:rooms(*),
+      slot:slots(*),
+      professor:users!professor_id(*)
+    `);
+
+  if (filters?.roomId) {
+    query = query.eq('room_id', filters.roomId);
+  }
+
+  if (filters?.blockId) {
+    // Join through rooms to filter by block
+    const { data: roomsInBlock } = await supabase
+      .from('rooms')
+      .select('id')
+      .eq('block_id', filters.blockId);
+    
+    const roomIds = roomsInBlock?.map(r => r.id) || [];
+    if (roomIds.length > 0) {
+      query = query.in('room_id', roomIds);
+    }
+  }
+
+  if (filters?.date) {
+    query = query.eq('reservation_date', filters.date);
+  }
+
+  if (filters?.from && filters?.to) {
+    query = query
+      .gte('reservation_date', filters.from)
+      .lte('reservation_date', filters.to);
+  }
+
+  if (filters?.professorId) {
+    query = query.eq('professor_id', filters.professorId);
+  }
+
+  if (filters?.status) {
+    query = query.eq('status', filters.status);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('[getReservations] Error:', error);
+    return [];
+  }
+
+  return (data || []).map((res: any) => ({
+    ...res,
+    professorName: res.professor?.name || 'Profesor Desconocido',
+    block: res.room?.block_id
+  }));
+}
+
+export async function getMyReservations(userId: string, filters?: ReservationFilters): Promise<ReservationWithDetails[]> {
+  return getReservations({
+    ...filters,
+    professorId: userId
+  });
+}
+
+export async function createReservation(userId: string, data: CreateReservationRequest): Promise<Reservation> {
+  const mode = await getSystemMode();
+  
+  if (mode === 'seed') {
+    throw new Error('No se pueden crear reservas en modo seed');
+  }
+
+  const supabase = getSupabaseAdmin();
+  
+  try {
+    const { data: reservation, error } = await supabase
+      .from('reservations')
+      .insert([{
+        room_id: data.room_id,
+        slot_id: data.slot_id,
+        professor_id: userId,
+        reservation_date: data.reservation_date,
+        subject: data.subject,
+        group_name: data.group_name,
+        status: 'confirmada',
+        created_by: userId,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error('Ya existe una reserva para esta franja, salón y fecha');
+      }
+      throw error;
+    }
+
+    await recordAudit({
+      user_id: userId,
+      user_email: 'unknown',
+      user_role: 'profesor',
+      action: 'create_reservation',
+      entity: 'reservation',
+      entity_id: reservation.id,
+      summary: `Reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date}`
+    });
+
+    return reservation;
+  } catch (err) {
+    console.error('[createReservation] Error:', err);
+    throw err;
+  }
+}
+
+export async function cancelReservation(id: string, userId: string, role: string, reason?: string): Promise<Reservation> {
+  const mode = await getSystemMode();
+  
+  if (mode === 'seed') {
+    throw new Error('No se pueden cancelar reservas en modo seed');
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  try {
+    const { data: reservation, error } = await supabase
+      .from('reservations')
+      .update({
+        status: 'cancelada',
+        cancellation_reason: reason || null,
+        cancelled_by: userId,
+        cancelled_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await recordAudit({
+      user_id: userId,
+      user_email: 'unknown',
+      user_role: role as any,
+      action: 'cancel_reservation',
+      entity: 'reservation',
+      entity_id: id,
+      summary: `Reserva cancelada: ${reservation.subject} | Motivo: ${reason || 'N/A'}`
+    });
+
+    return reservation;
+  } catch (err) {
+    console.error('[cancelReservation] Error:', err);
+    throw err;
+  }
 }

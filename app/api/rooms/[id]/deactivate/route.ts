@@ -1,0 +1,43 @@
+/**
+ * POST /api/rooms/[id]/deactivate (admin only)
+ * GET: Verifica si hay reservas futuras (RN-10)
+ * POST con ?confirm=true: Confirma desactivación
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { withRole } from '@/lib/withRole';
+import { deactivateRoom, confirmDeactivateRoom } from '@/lib/dataService';
+import { JWTPayload } from '@/lib/types';
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return withRole(['admin'])(async (req: NextRequest, user: JWTPayload) => {
+    try {
+      const searchParams = req.nextUrl.searchParams;
+      const confirm = searchParams.get('confirm') === 'true';
+
+      if (!confirm) {
+        // Primera llamada: verificar y retornar advertencia si hay reservas futuras
+        const { warningCount } = await deactivateRoom(params.id, user.userId);
+        
+        return NextResponse.json({
+          warningCount,
+          requiresConfirmation: warningCount > 0
+        });
+      } else {
+        // Segunda llamada: confirmar desactivación
+        const room = await confirmDeactivateRoom(params.id, user.userId);
+        
+        return NextResponse.json(room);
+      }
+    } catch (error: any) {
+      console.error('[POST /api/rooms/:id/deactivate] Error:', error);
+      return NextResponse.json(
+        { error: error.message || 'Error deactivating room' },
+        { status: 500 }
+      );
+    }
+  })(request);
+}

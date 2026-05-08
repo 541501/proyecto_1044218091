@@ -99,6 +99,117 @@ export interface Reservation {
 }
 
 // ============================================================================
+// AVAILABILITY AND CALENDAR TYPES
+// ============================================================================
+
+export type SlotCellState = 'libre' | 'ocupada' | 'pasada' | 'ocupada_pasada';
+
+export interface SlotCell {
+  slotId: string;
+  slotName: string;
+  startTime: string;
+  endTime: string;
+  state: SlotCellState;
+  reservation?: {
+    id: string;
+    professorName: string;
+    subject: string;
+    groupName: string;
+  };
+}
+
+export interface WeekDay {
+  date: string; // YYYY-MM-DD
+  dayName: string;
+  slots: SlotCell[];
+}
+
+export interface WeeklyCalendar {
+  roomId: string;
+  roomCode: string;
+  blockId: string;
+  weekStart: string;
+  days: WeekDay[];
+}
+
+export interface BlockAvailability {
+  blockId: string;
+  date: string;
+  totalRooms: number;
+  availableRooms: number;
+  occupiedRooms: number;
+  availabilityPercentage: number;
+}
+
+// ============================================================================
+// ROOM AND BLOCK FILTERS
+// ============================================================================
+
+export interface RoomFilters {
+  blockId?: string;
+  activeOnly?: boolean;
+}
+
+export interface ReservationFilters {
+  roomId?: string;
+  blockId?: string;
+  date?: string;
+  from?: string; // YYYY-MM-DD
+  to?: string;   // YYYY-MM-DD
+  professorId?: string;
+  status?: 'confirmada' | 'cancelada';
+}
+
+export interface CreateRoomRequest {
+  block_id: string;
+  code: string;
+  type: 'salon' | 'laboratorio' | 'auditorio' | 'sala_computo' | 'otro';
+  capacity: number;
+  equipment?: string;
+}
+
+export interface UpdateRoomRequest {
+  code?: string;
+  type?: 'salon' | 'laboratorio' | 'auditorio' | 'sala_computo' | 'otro';
+  capacity?: number;
+  equipment?: string;
+  is_active?: boolean;
+}
+
+export interface CreateReservationRequest {
+  room_id: string;
+  slot_id: string;
+  reservation_date: string;
+  subject: string;
+  group_name: string;
+}
+
+export interface CancelReservationRequest {
+  reason?: string;
+}
+
+// ============================================================================
+// EXTENDED TYPES WITH RELATIONSHIPS
+// ============================================================================
+
+export interface RoomWithBlock extends Room {
+  block: Block;
+}
+
+export interface ReservationWithDetails extends Reservation {
+  room?: Room;
+  slot?: Slot;
+  professor?: SafeUser;
+  professorName?: string;
+  block?: Block;
+}
+
+export interface BlockWithAvailability extends Block {
+  availability?: BlockAvailability;
+  roomCount?: number;
+}
+
+// ============================================================================
 // JWT PAYLOAD
 // ============================================================================
 

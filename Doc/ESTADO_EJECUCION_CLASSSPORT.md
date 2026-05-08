@@ -24,8 +24,8 @@
 | # | Fase | Rol Asignado | Estado | Inicio | Cierre | Resumen |
 |---|---|---|---|---|---|---|
 | 1 | Bootstrap, Login y `dataService` base | Ingeniero Fullstack Senior — Arquitecto del sistema y seguridad | Completada | 04-05-2026 14:30 | 05-05-2026 00:35 | ✅ 22 archivos, 7 API routes, JWT auth, seed mode, typecheck ✓ |
-| 2 | Dashboard, Layout base y página de bootstrap | Diseñador Frontend Obsesivo + Ingeniero de Sistemas | En progreso | 05-05-2026 00:36 | — | — |
-| 3 | Bloques, Salones y Disponibilidad | Ingeniero Fullstack Senior — Consulta de disponibilidad en tiempo real | Pendiente | — | — | — |
+| 2 | Dashboard, Layout base y página de bootstrap | Diseñador Frontend Obsesivo + Ingeniero de Sistemas | Completada | 05-05-2026 00:36 | 08-05-2026 09:15 | ✅ ToastProvider, UI components, AppLayout, db-setup diagnostics, middleware actualizado |
+| 3 | Bloques, Salones y Disponibilidad | Ingeniero Fullstack Senior — Consulta de disponibilidad en tiempo real | En progreso | 08-05-2026 14:00 | — | 🟡 100% completado (código): migrations, availabilityService, API routes, 5 componentes UI, 3 páginas, dataService CRUD. Pendiente: commit/push y testing |
 | 4 | Reservas | Ingeniero Fullstack Senior — Flujo central del sistema y prevención de conflictos | Pendiente | — | — | — |
 | 5 | Reportes y Administración de Usuarios | Ingeniero Fullstack Senior | Pendiente | — | — | — |
 | 6 | Pulido final y Deploy | Diseñador Frontend Obsesivo + Ingeniero Fullstack | Pendiente | — | — | — |
@@ -51,8 +51,6 @@
 | 29-04-2026 | 14:35 | Sistema | Inicialización | Archivo de estado creado. Proyecto listo para comenzar Fase 1. |
 | 04-05-2026 | 14:30 | Fase 1 | Inicio de Fase 1 | Iniciando implementación de Bootstrap, Login y dataService base. Tareas 1.1 a 1.13 en ejecución. |
 | 05-05-2026 | 00:35 | Fase 1 | Completación de Fase 1 | ✅ EXITOSO: 22 archivos implementados, npm typecheck ✓ (0 errores), Login workflow test PASS, JWT+Cookie security verified, seed mode fully functional, audit logging ready. Ready para Fase 2. |
-
----
-
-> Última actualización: 05-05-2026 00:35
-> Estado actual: **Fase 1 Completada — Listo para Fase 2**
+| 05-05-2026 | 00:36 | Fase 2 | Inicio de Fase 2 | Iniciando Dashboard, Layout base y página de bootstrap. |
+| 08-05-2026 | 09:15 | Fase 2 | Completación de Fase 2 | ✅ EXITOSO: ToastProvider wrapper, UI components (Button, Card, Badge, Modal, Toast), AppLayout con Sidebar role-based, db-setup diagnostics page, SeedModeBanner, GET /api/dashboard, middleware actualizado. 9 archivos modificados, 2 nuevos creados. Commit: 5ae5965. |
+| 08-05-2026 | 14:00 | Fase 3 | Inicio de Fase 3 | Iniciando Bloques, Salones y Disponibilidad. Migrations 0002/0003, availabilityService, API routes, componentes UI. |
