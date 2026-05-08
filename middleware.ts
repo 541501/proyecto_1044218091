@@ -13,7 +13,7 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
   // Rutas públicas
-  if (pathname === '/login' || pathname === '/') {
+  if (pathname === '/login' || pathname === '/' || pathname === '/api/auth/login' || pathname === '/api/auth/logout' || pathname === '/api/system/mode' || pathname === '/api/system/diagnose' || pathname === '/api/system/bootstrap') {
     return NextResponse.next();
   }
 

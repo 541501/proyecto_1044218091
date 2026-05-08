@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/withAuth';
 import { getSystemMode } from '@/lib/dataService';
+import { JWTPayload } from '@/lib/types';
 
 export async function GET(req: NextRequest) {
-  return withAuth(req, async (user) => {
+  return withAuth(req, async (_req: NextRequest, user: JWTPayload) => {
     const mode = await getSystemMode();
 
     // En seed mode, retornar estructura vacía

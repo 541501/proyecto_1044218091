@@ -36,6 +36,8 @@ export default function DbSetupPage() {
   const [diagnostic, setDiagnostic] = useState<DiagnosticData | null>(null);
   const [loading, setLoading] = useState(true);
   const [bootstrapping, setBootstrapping] = useState(false);
+  const [showSecretModal, setShowSecretModal] = useState(false);
+  const [secretInput, setSecretInput] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -52,6 +54,7 @@ export default function DbSetupPage() {
 
         // Get diagnostic
         const diagRes = await fetch('/api/system/diagnose');
+        if (!diagRes.ok) throw new Error('Failed to fetch diagnostic');
         const diagData = await diagRes.json();
         setDiagnostic(diagData);
       } catch (err) {
@@ -65,20 +68,22 @@ export default function DbSetupPage() {
 
   const handleBootstrap = async () => {
     if (!confirm('¿Ejecutar bootstrap? Se aplicarán migrations y se cargarán datos iniciales.')) return;
+    setShowSecretModal(true);
+  };
 
+  const confirmBootstrap = async () => {
+    if (!secretInput.trim()) {
+      addToast('El secret es requerido', 'error');
+      return;
+    }
+
+    setShowSecretModal(false);
     setBootstrapping(true);
     try {
-      const secret = prompt('Ingresa ADMIN_BOOTSTRAP_SECRET:');
-      if (!secret) {
-        addToast('Bootstrap cancelado', 'info');
-        setBootstrapping(false);
-        return;
-      }
-
       const res = await fetch('/api/system/bootstrap', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secret }),
+        body: JSON.stringify({ secret: secretInput }),
       });
 
       if (!res.ok) {
@@ -90,14 +95,17 @@ export default function DbSetupPage() {
 
         // Reload diagnostic
         const diagRes = await fetch('/api/system/diagnose');
-        const diagData = await diagRes.json();
-        setDiagnostic(diagData);
+        if (diagRes.ok) {
+          const diagData = await diagRes.json();
+          setDiagnostic(diagData);
+        }
       }
     } catch (err) {
       console.error('Bootstrap error:', err);
       addToast('Error durante bootstrap', 'error');
     } finally {
       setBootstrapping(false);
+      setSecretInput('');
     }
   };
 
@@ -148,7 +156,7 @@ export default function DbSetupPage() {
         <Card>
           <CardTitle>Migrations</CardTitle>
           <CardContent className="mt-4 space-y-4">
-            {diagnostic.migrations.appliedList.length > 0 && (
+            {diagnostic.migrations?.appliedList && diagnostic.migrations.appliedList.length > 0 && (
               <div>
                 <p className="text-sm font-semibold text-slate-900 mb-2">Aplicadas ({diagnostic.migrations.appliedList.length})</p>
                 <ul className="space-y-1">
@@ -162,7 +170,7 @@ export default function DbSetupPage() {
               </div>
             )}
 
-            {diagnostic.migrations.pendingList.length > 0 && (
+            {diagnostic.migrations?.pendingList && diagnostic.migrations.pendingList.length > 0 && (
               <div>
                 <p className="text-sm font-semibold text-slate-900 mb-2">Pendientes ({diagnostic.migrations.pendingList.length})</p>
                 <ul className="space-y-1">
@@ -232,6 +240,43 @@ export default function DbSetupPage() {
               </p>
             </CardContent>
           </Card>
+        )}
+
+        {/* Secret Input Modal */}
+        {showSecretModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <Card className="w-full max-w-sm">
+              <CardTitle>Ingresa ADMIN_BOOTSTRAP_SECRET</CardTitle>
+              <CardContent className="mt-4">
+                <input
+                  type="password"
+                  value={secretInput}
+                  onChange={(e) => setSecretInput(e.target.value)}
+                  placeholder="ADMIN_BOOTSTRAP_SECRET"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  onKeyDown={(e) => e.key === 'Enter' && confirmBootstrap()}
+                />
+              </CardContent>
+              <CardFooter className="flex justify-end gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowSecretModal(false);
+                    setSecretInput('');
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={confirmBootstrap}
+                  isLoading={bootstrapping}
+                >
+                  Confirmar
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
         )}
       </div>
     </AppLayout>

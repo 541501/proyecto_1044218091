@@ -11,13 +11,16 @@ export async function POST(req: NextRequest) {
     // Validate input
     const parsed = loginSchema.safeParse(body);
     if (!parsed.success) {
+      console.error('[login] Invalid input:', parsed.error);
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
     const { email, password } = parsed.data;
+    console.log('[login] Attempting login for email:', email);
 
     // Get user by email
     const user = await getUserByEmail(email);
+    console.log('[login] User found:', user ? `${user.email} (${user.role})` : 'Not found');
     if (!user) {
       // Generic error message (never reveal whether email exists)
       return NextResponse.json({ error: 'Correo o contraseña incorrectos' }, { status: 401 });

@@ -1,22 +1,10 @@
 import type { Metadata } from 'next'
-import { Playfair_Display, Poppins } from 'next/font/google'
 import './globals.css'
-
-const playfairDisplay = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-playfair',
-  weight: ['400', '700', '900'],
-})
-
-const poppins = Poppins({
-  subsets: ['latin'],
-  variable: '--font-poppins',
-  weight: ['300', '400', '500', '600', '700'],
-})
+import { ToastProvider } from '@/components/ui/Toast'
 
 export const metadata: Metadata = {
-  title: 'Home | Mi App TypeScript',
-  description: 'Página principal del sistema — Fullstack TypeScript + Next.js + Vercel',
+  title: 'ClassSport | Gestión de Salones',
+  description: 'Plataforma de asignación de salones universitarios',
 }
 
 export default function RootLayout({
@@ -25,9 +13,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" className={`${playfairDisplay.variable} ${poppins.variable}`}>
-      <body className="bg-gradient-to-b from-gray-950 via-slate-950 to-gray-950 min-h-screen overflow-x-hidden">
-        {children}
+    <html lang="es">
+      <body className="bg-slate-50 min-h-screen">
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   )

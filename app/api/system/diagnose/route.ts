@@ -7,8 +7,17 @@ export async function GET(req: NextRequest) {
     const mode = await getSystemMode();
 
     // Gather diagnostic information
-    const appliedMigrations = await getAppliedMigrations();
-    const pendingMigrations = await getPendingMigrations();
+    let appliedMigrations: any[] = [];
+    let pendingMigrations: string[] = [];
+
+    if (mode === 'live') {
+      try {
+        appliedMigrations = await getAppliedMigrations();
+        pendingMigrations = await getPendingMigrations();
+      } catch (err) {
+        console.warn('[diagnose] Could not fetch migrations:', err);
+      }
+    }
 
     let users = 0,
       blocks = 0,
@@ -22,7 +31,7 @@ export async function GET(req: NextRequest) {
         slots = (await getSlots()).length;
         rooms = (await getRooms()).length;
       } catch (err) {
-        console.warn('Could not fetch counts:', err);
+        console.warn('[diagnose] Could not fetch counts:', err);
       }
     }
 
@@ -47,6 +56,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Diagnostic failed';
+    console.error('[diagnose] Error:', message, err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
