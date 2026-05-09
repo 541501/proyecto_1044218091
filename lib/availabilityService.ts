@@ -5,6 +5,7 @@
  * Construye calendarios semanales y calcula disponibilidad por bloque
  */
 
+import 'server-only';
 import { 
   WeeklyCalendar, 
   BlockAvailability, 
@@ -165,15 +166,4 @@ export async function getAllBlocksAvailability(date: string): Promise<BlockAvail
   );
 
   return availabilities;
-}
-
-/**
- * Obtiene el color de borde de una tarjeta de bloque según disponibilidad
- */
-export function getBlockCardBorderColor(availability: BlockAvailability): string {
-  const percentage = availability.availabilityPercentage;
-  
-  if (percentage === 0) return 'border-red-500';      // Todo ocupado
-  if (percentage <= 33) return 'border-amber-500';    // Pocos libres
-  return 'border-green-500';                           // Hay libres
 }

@@ -6,7 +6,7 @@
 'use client';
 
 import { BlockWithAvailability } from '@/lib/types';
-import { getBlockCardBorderColor } from '@/lib/availabilityService';
+import { getBlockCardBorderColor } from '@/lib/availabilityUtils';
 
 interface Props {
   block: BlockWithAvailability;
