@@ -77,7 +77,7 @@ export default function RoomDetailsPage({
 
     // Solo permitir click en slots libres
     if (slot.state === 'libre') {
-      // Navegar a la página de crear reserva
+      // Navegar a la página de crear reserva con parámetros pre-llenados
       const reservationDate = day.date;
       router.push(
         `/reservations/new?roomId=${params.roomId}&slotId=${slot.slotId}&date=${reservationDate}`

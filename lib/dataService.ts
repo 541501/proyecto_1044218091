@@ -576,9 +576,31 @@ export async function createReservation(userId: string, data: CreateReservationR
     throw new Error('No se pueden crear reservas en modo seed');
   }
 
+  // Import reservationService functions
+  const { validateReservationRules, checkConflict } = await import('./reservationService');
+
+  // (1) Validate business rules: RN-02 (weekday), RN-03 (max 60 days ahead)
+  const validationErrors = validateReservationRules(data.reservation_date);
+  if (validationErrors.length > 0) {
+    const err = new Error(validationErrors[0]) as any;
+    err.code = 'VALIDATION_ERROR';
+    err.details = validationErrors;
+    throw err;
+  }
+
+  // (2) Check for existing conflict
+  const conflict = await checkConflict(data.room_id, data.slot_id, data.reservation_date);
+  if (conflict) {
+    const err = new Error('Conflicto de reserva') as any;
+    err.code = 'CONFLICT';
+    err.conflict = conflict;
+    throw err;
+  }
+
   const supabase = getSupabaseAdmin();
   
   try {
+    // (3) INSERT into reservations
     const { data: reservation, error } = await supabase
       .from('reservations')
       .insert([{
@@ -595,13 +617,18 @@ export async function createReservation(userId: string, data: CreateReservationR
       .select()
       .single();
 
+    // (4) Handle race condition: if Postgres rejects due to UNIQUE partial
     if (error) {
       if (error.code === '23505') {
-        throw new Error('Ya existe una reserva para esta franja, salón y fecha');
+        // UNIQUE violation on the partial index
+        const raceErr = new Error('Conflicto de reserva') as any;
+        raceErr.code = 'RACE_CONDITION';
+        throw raceErr;
       }
       throw error;
     }
 
+    // (5) Record audit
     await recordAudit({
       user_id: userId,
       user_email: 'unknown',
@@ -609,17 +636,28 @@ export async function createReservation(userId: string, data: CreateReservationR
       action: 'create_reservation',
       entity: 'reservation',
       entity_id: reservation.id,
-      summary: `Reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date}`
+      summary: `Reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date} (${data.group_name})`
     });
 
     return reservation;
-  } catch (err) {
+  } catch (err: any) {
     console.error('[createReservation] Error:', err);
+    
+    // Re-throw validation and conflict errors with special codes
+    if (err.code === 'VALIDATION_ERROR' || err.code === 'CONFLICT' || err.code === 'RACE_CONDITION') {
+      throw err;
+    }
+    
     throw err;
   }
 }
 
-export async function cancelReservation(id: string, userId: string, role: string, reason?: string): Promise<Reservation> {
+export async function cancelReservation(
+  id: string,
+  userId: string,
+  role: string,
+  reason?: string
+): Promise<Reservation> {
   const mode = await getSystemMode();
   
   if (mode === 'seed') {
@@ -629,7 +667,47 @@ export async function cancelReservation(id: string, userId: string, role: string
   const supabase = getSupabaseAdmin();
 
   try {
-    const { data: reservation, error } = await supabase
+    // Fetch the reservation first to validate permissions and date
+    const { data: reservation, error: fetchError } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !reservation) {
+      throw new Error('Reserva no encontrada');
+    }
+
+    // RN-05: Verify ownership for 'profesor' role
+    if (role === 'profesor' && reservation.professor_id !== userId) {
+      const err = new Error('No tienes permisos para cancelar esta reserva') as any;
+      err.code = 'FORBIDDEN';
+      throw err;
+    }
+
+    // RN-04: For 'profesor', cannot cancel reservations today or in the past
+    if (role === 'profesor') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const reservationDate = new Date(reservation.reservation_date);
+      reservationDate.setHours(0, 0, 0, 0);
+
+      if (reservationDate <= today) {
+        const err = new Error('No se pueden cancelar reservas del día actual o del pasado') as any;
+        err.code = 'INVALID_CANCELLATION_DATE';
+        throw err;
+      }
+    }
+
+    // For coordinador and admin: reason is required
+    if ((role === 'coordinador' || role === 'admin') && !reason) {
+      const err = new Error('El motivo de cancelación es obligatorio para coordinadores y administradores') as any;
+      err.code = 'MISSING_REASON';
+      throw err;
+    }
+
+    // Perform the cancellation
+    const { data: canceledReservation, error } = await supabase
       .from('reservations')
       .update({
         status: 'cancelada',
@@ -650,12 +728,112 @@ export async function cancelReservation(id: string, userId: string, role: string
       action: 'cancel_reservation',
       entity: 'reservation',
       entity_id: id,
-      summary: `Reserva cancelada: ${reservation.subject} | Motivo: ${reason || 'N/A'}`
+      summary: `Reserva cancelada: ${reservation.subject} en ${reservation.reservation_date} | Motivo: ${reason || 'N/A'}`
     });
 
-    return reservation;
-  } catch (err) {
+    return canceledReservation;
+  } catch (err: any) {
     console.error('[cancelReservation] Error:', err);
+    
+    // Re-throw with preserved error codes
+    if (err.code === 'FORBIDDEN' || err.code === 'INVALID_CANCELLATION_DATE' || err.code === 'MISSING_REASON') {
+      throw err;
+    }
+    
     throw err;
+  }
+}
+
+/**
+ * Obtiene un reporte de ocupación de salones para un rango de fechas
+ * 
+ * Retorna un array de OccupancyReportRow con información del profesor, materia,
+ * grupo, salón, bloque, franja, etc. para todas las reservas confirmadas en el rango.
+ * 
+ * @param from Fecha inicio (YYYY-MM-DD) inclusive
+ * @param to Fecha fin (YYYY-MM-DD) inclusive
+ * @param blockId (Opcional) ID del bloque para filtrar. Si no se proporciona, devuelve todos
+ * @returns Array de filas de reporte
+ */
+export async function getOccupancyReport(from: string, to: string, blockId?: string): Promise<any[]> {
+  const mode = await getSystemMode();
+
+  if (mode === 'seed') {
+    return [];
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  try {
+    // Query: SELECT de reservations con JOINs a rooms, blocks, slots, users
+    let query = supabase
+      .from('reservations')
+      .select(`
+        id,
+        reservation_date,
+        subject,
+        group_name,
+        status,
+        room:rooms(
+          id,
+          code,
+          block_id,
+          block:blocks(
+            id,
+            name
+          )
+        ),
+        slot:slots(
+          id,
+          name
+        ),
+        professor:users!professor_id(
+          id,
+          name
+        )
+      `)
+      .eq('status', 'confirmada')
+      .gte('reservation_date', from)
+      .lte('reservation_date', to);
+
+    // Filter by block if provided
+    if (blockId) {
+      // Get room IDs in the specified block
+      const { data: roomsInBlock } = await supabase
+        .from('rooms')
+        .select('id')
+        .eq('block_id', blockId);
+
+      const roomIds = roomsInBlock?.map(r => r.id) || [];
+      if (roomIds.length > 0) {
+        query = query.in('room_id', roomIds);
+      } else {
+        // No rooms in block, return empty
+        return [];
+      }
+    }
+
+    const { data, error } = await query.order('reservation_date', { ascending: true });
+
+    if (error) {
+      console.error('[getOccupancyReport] Error:', error);
+      return [];
+    }
+
+    // Transform the data to OccupancyReportRow format
+    return (data || []).map((row: any) => ({
+      fecha: row.reservation_date,
+      bloque: row.room?.block?.name || 'Desconocido',
+      salon: row.room?.code || 'Desconocido',
+      codigo: row.room?.code || 'Desconocido',
+      franja: row.slot?.name || 'Desconocido',
+      profesor: row.professor?.name || 'Profesor Desconocido',
+      materia: row.subject || 'N/A',
+      grupo: row.group_name || 'N/A',
+      estado: 'confirmada'
+    }));
+  } catch (err: any) {
+    console.error('[getOccupancyReport] Error:', err);
+    return [];
   }
 }

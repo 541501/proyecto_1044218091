@@ -188,6 +188,16 @@ export interface CancelReservationRequest {
   reason?: string;
 }
 
+export interface ReservationConflict {
+  roomId: string;
+  slotId: string;
+  date: string;
+  professorName: string;
+  subject: string;
+  groupName: string;
+  conflictingReservationId: string;
+}
+
 // ============================================================================
 // EXTENDED TYPES WITH RELATIONSHIPS
 // ============================================================================
