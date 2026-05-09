@@ -1,10 +1,10 @@
-import type { Metadata } from "next"
-import "./globals.css"
-import { ToastProvider } from "@/components/ui/Toast"
+import type { Metadata } from 'next'
+import './globals.css'
+import { ToastProvider } from '@/components/ui/Toast'
 
 export const metadata: Metadata = {
-  title: "ClassSport | Gestión de Salones",
-  description: "Plataforma de asignación de salones universitarios",
+  title: 'ClassSport | Gestión de Salones',
+  description: 'Plataforma de asignación de salones universitarios',
 }
 
 export default function RootLayout({
