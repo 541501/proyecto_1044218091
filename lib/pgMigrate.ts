@@ -1,3 +1,4 @@
+import 'server-only';
 import { Pool, QueryResult } from 'pg';
 import * as fs from 'fs/promises';
 import * as path from 'path';
