@@ -344,7 +344,7 @@ export default function ReportsPage() {
         {reportData.length === 0 && !loading && !error && (
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-12 text-center">
             <div className="text-slate-600">
-              Selecciona fechas y haz clic en "Generar Reporte" para ver los datos
+              Selecciona fechas y haz clic en &quot;Generar Reporte&quot; para ver los datos
             </div>
           </div>
         )}

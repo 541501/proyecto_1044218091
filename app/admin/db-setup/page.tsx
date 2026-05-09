@@ -204,7 +204,7 @@ export default function DbSetupPage() {
             <CardTitle>Panel de Bootstrap</CardTitle>
             <CardContent className="mt-4">
               <p className="text-sm text-slate-700 mb-4">
-                Haz clic en "Ejecutar Bootstrap" para:
+                Haz clic en &quot;Ejecutar Bootstrap&quot; para:
               </p>
               <ul className="text-sm text-slate-700 space-y-2 mb-6 ml-4">
                 <li>✓ Aplicar 1 migration (<code className="bg-white px-2 py-1 rounded">0001_init_users.sql</code>)</li>
