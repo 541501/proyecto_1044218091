@@ -1,33 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { JWTPayload, UserRole } from './types';
+import { verifyJWT, getTokenFromCookie } from './auth';
 
 /**
- * Middleware to check if user has required role(s).
- * Must be used after withAuth middleware.
+ * Función currificada para proteger rutas API con roles específicos
+ * Uso: export const GET = withRole(['admin'])(handler)
  */
-export async function withRole(
-  req: NextRequest,
-  user: JWTPayload,
-  allowedRoles: UserRole[],
-  handler: (req: NextRequest, user: JWTPayload) => Promise<NextResponse>
-): Promise<NextResponse> {
-  if (!allowedRoles.includes(user.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+export function withRole(allowedRoles: UserRole[]) {
+  return function withAuth(
+    handler: (req: NextRequest, user: JWTPayload) => Promise<NextResponse>
+  ) {
+    return async (req: NextRequest) => {
+      try {
+        const cookieHeader = req.headers.get('cookie');
+        const token = getTokenFromCookie(cookieHeader);
 
-  return handler(req, user);
-}
+        if (!token) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-/**
- * Helper to create a role-protected API route handler.
- * Usage:
- *   export const POST = roleProtectedRoute(['admin'], async (req, user) => { ... })
- */
-export function roleProtectedRoute(
-  allowedRoles: UserRole[],
-  handler: (req: NextRequest, user: JWTPayload) => Promise<NextResponse>
-) {
-  return async (req: NextRequest, user: JWTPayload) => {
-    return withRole(req, user, allowedRoles, handler);
+        const user = await verifyJWT(token);
+
+        if (!allowedRoles.includes(user.role)) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        return handler(req, user);
+      } catch (error) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    };
   };
 }
