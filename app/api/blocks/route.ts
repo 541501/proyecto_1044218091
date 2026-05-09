@@ -3,6 +3,8 @@
  * Retorna lista de bloques activos con disponibilidad
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getBlocks, getRooms } from '@/lib/dataService';
 import { getBlockAvailability } from '@/lib/availabilityService';
