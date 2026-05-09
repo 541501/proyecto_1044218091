@@ -5,23 +5,14 @@
 @tailwind utilities;
 
 :root {
-  /* ClassSport Color Palette */
-  
-  /* Background */
   --bg-main: #F8FAFC;
   --bg-card: #FFFFFF;
   --bg-alt: #F1F5F9;
-  
-  /* Primary - Azul Institucional */
   --primary: #1D4ED8;
   --primary-dark: #1E40AF;
   --primary-light: #3B82F6;
-  
-  /* Text */
   --text-primary: #0F172A;
   --text-secondary: #64748B;
-  
-  /* States */
   --success: #16A34A;
   --success-bg: #F0FDF4;
   --danger: #DC2626;
@@ -30,21 +21,15 @@
   --warning-bg: #FFFBEB;
   --info: #0EA5E9;
   --info-bg: #F0F9FF;
-  
-  /* Franja Calendar */
   --slot-free: #16A34A;
   --slot-free-bg: #F0FDF4;
   --slot-occupied: #DC2626;
   --slot-occupied-bg: #FEF2F2;
   --slot-past: #94A3B8;
   --slot-past-bg: #F8FAFC;
-  
-  /* Seed Mode Banner */
   --seed-bg: #FEF3C7;
   --seed-text: #92400E;
   --seed-border: #F59E0B;
-  
-  /* Borders */
   --border: #E2E8F0;
 }
 
@@ -56,22 +41,21 @@
 
 html {
   scroll-behavior: smooth;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-poppins, 'Inter'), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 body {
   background-color: var(--bg-main);
   color: var(--text-primary);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-poppins, 'Inter'), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Tipografía personalizada */
 h1, h2, h3 {
   font-weight: 700;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-playfair, 'Inter'), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 h1 {
@@ -79,14 +63,12 @@ h1 {
   letter-spacing: -0.02em;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   h1 {
     font-size: 2.5rem;
   }
 }
 
-/* Scroll bar personalizado */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -98,6 +80,7 @@ h1 {
 ::-webkit-scrollbar-thumb {
   background: rgba(168, 85, 247, 0.5);
   border-radius: 4px;
+}
 }
 
 ::-webkit-scrollbar-thumb:hover {
