@@ -26,13 +26,6 @@ export async function GET(request: NextRequest) {
         };
       })
     );
-        return {
-          ...block,
-          availability,
-          roomCount: rooms.length
-        };
-      })
-    );
 
     return NextResponse.json(blocksWithAvailability);
   } catch (error) {
