@@ -343,8 +343,17 @@ export default function ReportsPage() {
         {/* Empty State */}
         {reportData.length === 0 && !loading && !error && (
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-12 text-center">
-            <div className="text-slate-600 mb-4">
+            <div className="text-slate-600">
               Selecciona fechas y haz clic en "Generar Reporte" para ver los datos
+            </div>
+          </div>
+        )}
+
+        {/* No Data After Generation */}
+        {reportData.length === 0 && !loading && error === '' && (fromDate && toDate) && (
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-12 text-center">
+            <div className="text-slate-600">
+              No hay reservas confirmadas en el período seleccionado. No se puede generar el reporte.
             </div>
           </div>
         )}

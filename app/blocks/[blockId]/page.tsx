@@ -134,7 +134,17 @@ export default function BlockDetailsPage({ params }: { params: { blockId: string
           </div>
         ) : rooms.length === 0 ? (
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
-            <div className="text-slate-600">No hay salones en este bloque</div>
+            <div className="text-slate-600 mb-4">
+              Este bloque aún no tiene salones registrados.
+            </div>
+            {user?.role === 'admin' && (
+              <Button
+                onClick={() => router.push(`/admin/rooms?blockId=${params.blockId}`)}
+                className="mt-4"
+              >
+                Agregar Salón
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

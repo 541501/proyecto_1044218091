@@ -226,17 +226,23 @@ export default function ReservationsPage() {
           </div>
         ) : filteredReservations.length === 0 ? (
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
-            <div className="text-slate-600">
-              {filter === 'all'
-                ? 'No hay reservas registradas'
-                : `No hay reservas ${filter === 'confirmada' ? 'confirmadas' : 'canceladas'}`}
+            <div className="text-slate-600 mb-4">
+              {isAdmin ? (
+                filter === 'confirmada'
+                  ? 'No hay reservas confirmadas para los filtros seleccionados. Prueba con otro rango de fechas o bloque.'
+                  : filter === 'cancelada'
+                  ? 'No hay reservas canceladas'
+                  : 'No hay reservas registradas'
+              ) : (
+                'Aún no tienes reservas. Consulta la disponibilidad de los bloques para hacer tu primera reserva.'
+              )}
             </div>
             {!isAdmin && filter === 'confirmada' && (
               <Button
                 onClick={() => router.push('/blocks')}
                 className="mt-4"
               >
-                Crear Nueva Reserva
+                Ir a Bloques
               </Button>
             )}
           </div>

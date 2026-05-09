@@ -24,7 +24,7 @@ export default function SlotCell({ slot, onClick, showDetails }: Props) {
   const baseStyles = `
     p-3 rounded-lg border transition-all cursor-pointer
     text-center text-sm font-medium
-    min-h-[80px] flex items-center justify-center
+    min-h-[60px] md:min-h-[80px] flex items-center justify-center
   `;
 
   let colorStyles = '';

@@ -61,6 +61,11 @@ export default function WeeklyCalendar({ calendar, loading, onSlotClick }: Props
     setCurrentWeekStart(monday.toISOString().split('T')[0]);
   };
 
+  // Verificar si todas las franjas están libres
+  const allSlotsAvailable = calendar.days.every(day =>
+    day.slots.every(slot => slot.state === 'libre')
+  );
+
   // Desktop view: Grilla completa
   const desktopView = (
     <div className="hidden md:block">
@@ -150,6 +155,11 @@ export default function WeeklyCalendar({ calendar, loading, onSlotClick }: Props
 
   return (
     <>
+      {allSlotsAvailable && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-300 rounded-lg text-green-900 text-center">
+          ✓ Todas las franjas disponibles para esta semana.
+        </div>
+      )}
       {desktopView}
       {mobileView}
     </>

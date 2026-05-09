@@ -18,6 +18,13 @@ export default function NewReservationPage() {
   const [groupName, setGroupName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [conflictError, setConflictError] = useState<{
+    roomCode: string;
+    slotName: string;
+    date: string;
+    professorName: string;
+    subject: string;
+  } | null>(null);
   const [user, setUser] = useState<any>(null);
 
   const roomId = searchParams.get('roomId');
@@ -76,6 +83,7 @@ export default function NewReservationPage() {
 
     setLoading(true);
     setError('');
+    setConflictError(null);
 
     try {
       const res = await fetch('/api/reservations', {
@@ -98,16 +106,22 @@ export default function NewReservationPage() {
         const data = await res.json();
         const conflict = data.conflict;
         if (conflict) {
-          setError(
-            `El salón ${conflict.roomCode} ya está reservado en esa franja por ` +
-            `Prof. ${conflict.professorName} — ${conflict.subject}`
-          );
+          setConflictError({
+            roomCode: conflict.roomCode,
+            slotName: conflict.slotName,
+            date: conflict.date,
+            professorName: conflict.professorName,
+            subject: conflict.subject
+          });
         } else {
+          // Otro tipo de conflicto (reglas de negocio)
           setError(data.error || 'Conflicto de reserva');
         }
       } else if (res.status === 400) {
         const data = await res.json();
         setError(data.error || 'Error en los datos de la reserva');
+      } else if (res.status === 401) {
+        setError('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
       } else {
         setError('Error al crear la reserva');
       }
@@ -156,6 +170,53 @@ export default function NewReservationPage() {
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-300 rounded-lg text-red-900">
             {error}
+          </div>
+        )}
+
+        {/* Conflict Error - Prominent Alert */}
+        {conflictError && (
+          <div className="mb-6 p-6 bg-red-50 border-l-4 border-red-500 rounded-lg">
+            <div className="flex gap-4">
+              <div className="flex-shrink-0 mt-0.5">
+                <svg className="h-6 w-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-red-900 mb-2">Salón no disponible</h3>
+                <div className="space-y-2 text-red-800">
+                  <div>
+                    <span className="font-semibold">Salón:</span> {conflictError.roomCode}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Franja:</span> {conflictError.slotName}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Fecha:</span> {new Date(conflictError.date).toLocaleDateString('es-CO')}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-red-200">
+                    <div className="text-sm mb-2">
+                      <span className="font-semibold">Reservado por:</span> Prof. {conflictError.professorName}
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-semibold">Materia:</span> {conflictError.subject}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-red-200">
+              <p className="text-sm text-red-800">
+                Para reservar este salón, selecciona otra franja horaria o un salón diferente.
+              </p>
+              <Button
+                onClick={handleBack}
+                variant="secondary"
+                className="mt-3 border-red-300 text-red-700 hover:bg-red-100"
+              >
+                Volver a seleccionar
+              </Button>
+            </div>
           </div>
         )}
 

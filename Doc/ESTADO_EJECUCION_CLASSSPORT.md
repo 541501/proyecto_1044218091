@@ -28,7 +28,7 @@
 | 3 | Bloques, Salones y Disponibilidad | Ingeniero Fullstack Senior — Consulta de disponibilidad en tiempo real | Completada | 08-05-2026 14:00 | 08-05-2026 22:00 | ✅ Migrations 0002/0003, availabilityService, 7 API routes, 5 componentes UI, 4 páginas, dataService CRUD extendido, RN-06/09/10 implemented. Código 100% completo (commit pendiente por terminal freeze) |
 | 4 | Reservas | Ingeniero Fullstack Senior — Flujo central del sistema y prevención de conflictos | Completada | 08-05-2026 22:05 | 08-05-2026 22:50 | ✅ reservationService (validaciones RN-02/03, checkConflict), 4 API routes (create/cancel/list), formulario /reservations/new con pre-fill, listado con modals, RN-01/04/05/08 implementadas, doble validación (servicio + UNIQUE parcial) |
 | 5 | Reportes y Administración de Usuarios | Ingeniero Fullstack Senior — Reportes de ocupación y gestión de usuarios | Completada | 08-05-2026 22:55 | 08-05-2026 23:45 | ✅ reportService, dataService.getOccupancyReport, GET /api/reports/occupancy (JSON/CSV), /reports con filtros, POST /api/users con contraseña temporal, PUT /api/users/[id], /admin/users con modal crear, /api/audit, /admin/audit con navegación mensual. Doc/RESUMEN_FASE_5_REPORTES_ADMIN.md creado. |
-| 6 | Pulido final y Deploy | Diseñador Frontend Obsesivo + Ingeniero Fullstack | Pendiente | — | — | — |
+| 6 | Pulido final y Deploy | Diseñador Frontend Obsesivo + Ingeniero Fullstack | En progreso | 08-05-2026 23:50 | — | 🟡 Iniciando: empty states, manejo de errores, RNF-03 race condition, RNF-04 mobile, validaciones, build/deploy |
 
 ---
 
