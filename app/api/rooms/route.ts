@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     
     const rooms = await getRooms({
       blockId: blockId || undefined,
-      activeOnly: true
+      isActive: true
     });
 
     return NextResponse.json(rooms);

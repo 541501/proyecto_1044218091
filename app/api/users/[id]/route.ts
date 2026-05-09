@@ -10,10 +10,12 @@ import { withRole } from '@/lib/withRole';
 import * as dataService from '@/lib/dataService';
 import { updateUserSchema } from '@/lib/schemas';
 
-async function handler(request: NextRequest, props: { params: Promise<{ id: string }> }) {
-  const { id } = await props.params;
-
-  if (request.method === 'GET') {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  return withRole(['admin'])(async (req: NextRequest) => {
     try {
       const user = await dataService.getUserById(id);
 
@@ -32,9 +34,15 @@ async function handler(request: NextRequest, props: { params: Promise<{ id: stri
         { status: 500 }
       );
     }
-  }
+  })(request);
+}
 
-  if (request.method === 'PUT') {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  return withRole(['admin'])(async (req: NextRequest) => {
     try {
       const body = await request.json();
 
@@ -57,13 +65,5 @@ async function handler(request: NextRequest, props: { params: Promise<{ id: stri
         { status: 500 }
       );
     }
-  }
-
-  return NextResponse.json(
-    { error: 'Método no permitido' },
-    { status: 405 }
-  );
+  })(request);
 }
-
-export const GET = withRole(['admin'])(handler);
-export const PUT = withRole(['admin'])(handler);

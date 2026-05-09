@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/withAuth';
+import { authenticatedRoute } from '@/lib/withAuth';
 import { getReservations, cancelReservation } from '@/lib/dataService';
 import { JWTPayload } from '@/lib/types';
 import z from 'zod';
@@ -16,13 +16,14 @@ const CancelReservationSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(async (req: NextRequest, user: JWTPayload) => {
+  const { id } = await params;
+  return authenticatedRoute(async (req: NextRequest, user: JWTPayload) => {
     try {
       // Get the reservation with all details
       const allReservations = await getReservations();
-      const reservation = allReservations.find((r: any) => r.id === params.id);
+      const reservation = allReservations.find((r: any) => r.id === id);
 
       if (!reservation) {
         return NextResponse.json(
@@ -52,15 +53,16 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  return withAuth(async (req: NextRequest, user: JWTPayload) => {
+  const { id } = await params;
+  return authenticatedRoute(async (req: NextRequest, user: JWTPayload) => {
     try {
       const body = await req.json();
       const validated = CancelReservationSchema.parse(body);
 
       const reservation = await cancelReservation(
-        params.id,
+        id,
         user.userId,
         user.role,
         validated.reason

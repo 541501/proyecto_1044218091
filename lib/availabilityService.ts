@@ -124,7 +124,7 @@ export async function getBlockAvailability(
 ): Promise<BlockAvailability> {
   const rooms = await getRooms({ 
     blockId,
-    activeOnly: true 
+    isActive: true 
   });
 
   // Obtener todas las reservas del día para todos los salones del bloque

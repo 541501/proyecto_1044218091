@@ -51,9 +51,8 @@ async function handler(request: NextRequest) {
       const user = await dataService.createUser({
         name,
         email,
-        password: tempPassword,
-        role,
-        must_change_password: true
+        temporaryPassword: tempPassword,
+        role
       });
 
       // Retorn user info WITH the temporary password
