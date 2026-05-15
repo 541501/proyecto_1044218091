@@ -3,6 +3,9 @@ import * as bcrypt from 'bcryptjs';
 import { changePasswordSchema } from '@/lib/schemas';
 import { getUserById, updateUser, recordAudit } from '@/lib/dataService';
 import { authenticatedRoute } from '@/lib/withAuth';
+import * as jose from 'jose';
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'test-secret');
 
 async function handleChangePassword(req: NextRequest, user: any) {
   try {
@@ -22,10 +25,32 @@ async function handleChangePassword(req: NextRequest, user: any) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Verify current password
-    const passwordMatch = await bcrypt.compare(currentPassword, currentUser.password_hash);
-    if (!passwordMatch) {
-      return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });
+    // Check if this is a forced password change (must_change_password=true)
+    const authToken = req.cookies.get('auth-token')?.value;
+    let mustChangePassword = false;
+    
+    if (authToken) {
+      try {
+        const verified = await jose.jwtVerify(authToken, JWT_SECRET);
+        mustChangePassword = (verified.payload as any).must_change_password || false;
+      } catch {
+        // Ignore JWT verification errors
+      }
+    }
+
+    // If NOT forced password change, verify current password
+    if (!mustChangePassword) {
+      if (!currentPassword) {
+        return NextResponse.json(
+          { error: 'Current password is required' },
+          { status: 400 }
+        );
+      }
+
+      const passwordMatch = await bcrypt.compare(currentPassword, currentUser.password_hash);
+      if (!passwordMatch) {
+        return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });
+      }
     }
 
     // Hash new password
@@ -43,10 +68,10 @@ async function handleChangePassword(req: NextRequest, user: any) {
         user_id: user.userId,
         user_email: user.email,
         user_role: user.role,
-        action: 'login',
+        action: 'change_password',
         entity: 'user',
         entity_id: user.userId,
-        summary: `Cambió su contraseña`,
+        summary: `Cambió su contraseña${mustChangePassword ? ' (cambio forzado)' : ''}`,
       });
     } catch (auditErr) {
       console.warn('[change-password] Audit recording failed:', auditErr);

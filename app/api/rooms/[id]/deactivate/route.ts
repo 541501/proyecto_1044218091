@@ -32,10 +32,11 @@ export async function POST(
         
         return NextResponse.json(room);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[POST /api/rooms/:id/deactivate] Error:', error);
+      const err = error as Record<string, unknown>;
       return NextResponse.json(
-        { error: error.message || 'Error deactivating room' },
+        { error: String(err.message) || 'Error deactivating room' },
         { status: 500 }
       );
     }

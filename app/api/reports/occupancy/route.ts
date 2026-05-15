@@ -74,7 +74,7 @@ async function handler(request: NextRequest) {
 
     // Default: JSON format
     return NextResponse.json(rows, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[GET /api/reports/occupancy] Error:', error);
     return NextResponse.json(
       { error: 'Error al generar el reporte' },

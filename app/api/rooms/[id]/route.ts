@@ -55,7 +55,7 @@ export async function PUT(
       const room = await updateRoom(params.id, user.userId, validated);
 
       return NextResponse.json(room);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[PUT /api/rooms/:id] Error:', error);
       
       if (error instanceof z.ZodError) {

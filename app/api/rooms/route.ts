@@ -48,10 +48,11 @@ export async function POST(request: NextRequest) {
       const room = await createRoom(user.userId, validated);
 
       return NextResponse.json(room, { status: 201 });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[POST /api/rooms] Error:', error);
       
-      if (error.code === 'DUPLICATE_ROOM_CODE') {
+      const err = error as Record<string, unknown>;
+      if (err.code === 'DUPLICATE_ROOM_CODE') {
         return NextResponse.json(
           { error: 'Ya existe un salón con este código en el bloque' },
           { status: 409 }

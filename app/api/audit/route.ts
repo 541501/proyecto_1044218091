@@ -24,7 +24,7 @@ async function handler(request: NextRequest) {
     const entries = await dataService.readAuditMonth(month);
 
     return NextResponse.json(entries, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[GET /api/audit] Error:', error);
     return NextResponse.json(
       { error: 'Error al obtener la auditoría' },

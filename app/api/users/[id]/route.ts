@@ -27,7 +27,7 @@ export async function GET(
       }
 
       return NextResponse.json(user, { status: 200 });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[GET /api/users/[id]] Error:', error);
       return NextResponse.json(
         { error: 'Error al obtener el usuario' },
@@ -58,7 +58,7 @@ export async function PUT(
       const user = await dataService.updateUser(id, validation.data);
 
       return NextResponse.json(user, { status: 200 });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[PUT /api/users/[id]] Error:', error);
       return NextResponse.json(
         { error: 'Error al actualizar el usuario' },

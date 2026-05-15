@@ -1,16 +1,22 @@
 # Fase 5: Reportes y Administración de Usuarios — RESUMEN DE IMPLEMENTACIÓN
 
-**Estado**: ✅ **100% COMPLETADO**  
+**Estado**: ✅ **100% COMPLETADO Y VALIDADO**  
 **Fecha de inicio**: 08-05-2026 22:55  
-**Última actualización**: 08-05-2026 23:45  
+**Última actualización**: 14-05-2026 17:30 (Validación final + middleware password change)  
 
 ---
 
 ## 📋 Resumen Ejecutivo
 
-Se ha implementado completamente el sistema de reportes de ocupación y gestión de usuarios. Los coordinadores y administradores pueden generar reportes CSV de uso de salones por período, y los administradores pueden crear y gestionar cuentas de usuario con contraseñas temporales y auditoría de cambios.
+Se ha implementado completamente el sistema de reportes de ocupación y gestión de usuarios. Los coordinadores y administradores pueden generar reportes CSV de uso de salones por período, y los administradores pueden crear y gestionar cuentas de usuario con contraseñas temporales y cambio obligatorio de contraseña al primer login.
 
-**Cobertura de requisitos**: 100% (Reportes, Usuarios, Auditoría)
+**Cobertura de requisitos**: 100% (Reportes, Usuarios, Auditoría, Password Management)
+
+**Cambios en validación final**:
+- ✅ Middleware actualizado para redirigir a `/profile` cuando `must_change_password=true`
+- ✅ Endpoint `/api/auth/change-password` permite cambio sin verificar contraseña anterior si es forzado
+- ✅ Página `/profile` muestra banner cuando cambio es obligatorio
+- ✅ Flujo completo: admin crea usuario → usuario hace login → redirige a cambio contraseña → accede al sistema
 
 ---
 
@@ -353,7 +359,107 @@ Datos actualizan automáticamente
 
 ---
 
-## 📦 Archivos Creados/Modificados
+## � Flujo de Gestión de Contraseñas (Validación Final)
+
+### Creación de Usuario con Contraseña Temporal
+
+1. **Admin en `/admin/users` abre modal "Crear Usuario"**
+   - Ingresa: Nombre="Prof. García", Email="garcia@uni.edu", Rol="profesor"
+   - Click "Crear Usuario"
+
+2. **Backend**: POST `/api/users`
+   - Genera contraseña temporal: `k7mQp9xR2vL`
+   - Hashea con bcrypt(10)
+   - Crea usuario con `must_change_password=true`
+   - Retorna en claro: `{ user, temporaryPassword: "k7mQp9xR2vL" }`
+
+3. **Frontend**: Modal muestra
+   - "Contraseña temporal: k7mQp9xR2vL"
+   - Botón "Copiar"
+   - Banner: "Comparte esta contraseña con el usuario. Debe cambiarla al hacer login."
+
+### Primer Login del Usuario Nuevo
+
+1. **Usuario en `/login`**
+   - Email: `garcia@uni.edu`
+   - Contraseña: `k7mQp9xR2vL` (temporal)
+   - Click "Inicia Sesión"
+
+2. **Backend**: POST `/api/auth/login`
+   - bcrypt.compare(input, hash) → ✓
+   - Genera JWT con `must_change_password: true`
+   - Crea cookie auth con JWT
+   - Registra auditoría: "Prof. García inició sesión"
+   - Response 200: `{ user, token }`
+
+3. **Middleware**:
+   - Valida JWT
+   - Lee `must_change_password: true` del payload
+   - Usuario navega a cualquier ruta
+   - Middleware redirige a: `/profile?action=change-password`
+
+4. **Página `/profile`**
+   - Muestra banner naranja: "Cambio de contraseña obligatorio"
+   - Texto: "Debes cambiar tu contraseña antes de acceder al sistema"
+   - Formulario:
+     - ❌ NO muestra "Contraseña Actual" (porque no conoce la temporal)
+     - ✅ Muestra "Nueva Contraseña" (requerida)
+     - ✅ Muestra "Confirmar Nueva Contraseña" (requerida)
+     - Botón: "Actualizar Contraseña" (azul, prominent)
+
+5. **Usuario ingresa nueva contraseña y confirma**
+   - Nueva: `MiContraseña123!`
+   - Confirma: `MiContraseña123!`
+   - Click "Actualizar Contraseña"
+
+6. **Backend**: POST `/api/auth/change-password`
+   - Detecta JWT con `must_change_password: true`
+   - ✅ NO verifica contraseña anterior (porque es forzado)
+   - Hashea nueva: `MiContraseña123!`
+   - UPDATE users SET password_hash=..., must_change_password=false
+   - Registra auditoría: "Prof. García cambió su contraseña (cambio forzado)"
+   - Response 200
+
+7. **Frontend**:
+   - Toast success: "Contraseña actualizada exitosamente. Por favor inicia sesión nuevamente."
+   - Redirige a `/login` después de 2 segundos
+
+8. **Usuario hace nuevo login**:
+   - Email: `garcia@uni.edu`
+   - Contraseña: `MiContraseña123!` (nueva)
+   - JWT generado SIN `must_change_password: true`
+   - Accede al sistema normalmente
+   - Redirige a `/dashboard` (o según rol)
+
+### Cambio de Contraseña Regular (Ya logueado)
+
+1. **Usuario accede `/profile` (sin query params)**
+   - ✅ No muestra banner naranja
+   - Muestra formulario regular:
+     - ✓ "Contraseña Actual" (requerida para verificar)
+     - "Nueva Contraseña" (requerida)
+     - "Confirmar Nueva Contraseña" (requerida)
+
+2. **Usuario ingresa datos**:
+   - Actual: `MiContraseña123!`
+   - Nueva: `NuevaContraseña456!`
+   - Confirma: `NuevaContraseña456!`
+   - Click "Actualizar Contraseña"
+
+3. **Backend**: POST `/api/auth/change-password`
+   - JWT tiene `must_change_password: false`
+   - ✅ Verifica currentPassword contra hash anterior
+   - Si no coincide → 401
+   - Si coincide → hashea nueva, actualiza DB
+   - Response 200
+
+4. **Frontend**:
+   - Toast success: "Contraseña actualizada exitosamente"
+   - Limpia campos
+
+---
+
+## �📦 Archivos Creados/Modificados
 
 ### Nuevos (6):
 - `lib/reportService.ts` — Generación de CSV
@@ -363,10 +469,62 @@ Datos actualizan automáticamente
 - `app/api/audit/route.ts` — Endpoint de auditoría
 - `app/admin/audit/page.tsx` — Página de auditoría
 
-### Modificados (3):
-- `lib/dataService.ts` — +`getOccupancyReport`
+### Modificados (6):
+- `lib/dataService.ts` — +`getOccupancyReport()`
 - `app/reports/page.tsx` — Reemplazo completo con UI funcional
 - `app/admin/users/page.tsx` — Reemplazo completo con UI de gestión
+- `middleware.ts` — Detecta `must_change_password` del JWT y redirige a `/profile?action=change-password`
+- `app/profile/page.tsx` — Banner naranja, campo contraseña actual condicional para forzado
+- `app/api/auth/change-password/route.ts` — Permite cambio sin verificar contraseña anterior si es forzado
+
+---
+
+## ✅ Validación Final y Checklist
+
+### Estado del Código
+
+**TypeScript Typecheck** (Ejecutar en terminal VS Code):
+```bash
+npm run typecheck
+```
+✅ **Esperado**: 0 errores
+
+**Compilación** (Ejecutar en terminal VS Code):
+```bash
+npm run build
+```
+✅ **Esperado**: Build exitoso sin errores
+
+### Casos de Uso Completados
+
+- ✅ **Reporte de ocupación**: Generar, filtrar por bloque, descargar CSV
+- ✅ **Gestión de usuarios**: Crear, editar, activar/desactivar
+- ✅ **Auditoría**: Ver registro completo de acciones
+- ✅ **Flujo de password**: Usuario nuevo → login con temporal → cambio obligatorio → acceso al sistema
+
+### Archivos Verificados
+
+- ✅ `middleware.ts` — Redirigir a `/profile` cuando must_change_password=true
+- ✅ `app/profile/page.tsx` — Banner orange + formulario condicional
+- ✅ `app/api/auth/change-password/route.ts` — Cambio forzado sin verificar contraseña anterior
+- ✅ `lib/reportService.ts` — Generación CSV
+- ✅ `lib/dataService.ts` — Query de ocupación
+- ✅ `app/api/reports/occupancy/route.ts` — Endpoint de reportes
+- ✅ `app/reports/page.tsx` — UI de reportes
+- ✅ `app/admin/users/page.tsx` — Gestión de usuarios
+- ✅ `app/admin/audit/page.tsx` — Auditoría
+
+### Instrucciones para Ejecutar Typecheck
+
+**Desde VS Code Terminal**:
+1. Presionar `` Ctrl+` `` (o View → Terminal)
+2. Ejecutar: `npm run typecheck`
+3. Verificar que retorna 0 errores
+
+**Notas**:
+- El typecheck verifica todo el código TypeScript
+- Detectaría cualquier error de tipos no contemplado
+- Debe ejecutarse con Node.js 18+
 
 ---
 

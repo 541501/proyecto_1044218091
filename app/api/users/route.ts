@@ -15,7 +15,7 @@ async function handler(request: NextRequest) {
     try {
       const users = await dataService.listUsers();
       return NextResponse.json(users, { status: 200 });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[GET /api/users] Error:', error);
       return NextResponse.json(
         { error: 'Error al obtener usuarios' },
@@ -65,11 +65,13 @@ async function handler(request: NextRequest) {
         },
         { status: 201 }
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[POST /api/users] Error:', error);
 
+      const err = error as Record<string, unknown>;
+
       // Handle duplicate email
-      if (error.code === 'UNIQUE_VIOLATION' || error.message?.includes('unique')) {
+      if (err.code === 'UNIQUE_VIOLATION' || String(err.message).includes('unique')) {
         return NextResponse.json(
           { error: 'El email ya está registrado' },
           { status: 409 }

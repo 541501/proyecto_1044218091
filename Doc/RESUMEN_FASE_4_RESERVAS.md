@@ -1,14 +1,19 @@
 # Fase 4: Reservas — RESUMEN DE IMPLEMENTACIÓN
 
-**Estado**: ✅ **100% COMPLETADO**  
+**Estado**: ✅ **100% COMPLETADO Y VALIDADO**  
 **Fecha de inicio**: 08-05-2026 22:05  
-**Última actualización**: 08-05-2026 22:45  
+**Última actualización**: 08-05-2026 23:30 (Validación final + separación de rutas)  
 
 ---
 
 ## 📋 Resumen Ejecutivo
 
 Se ha implementado completamente el sistema central de reservas de ClassSport con prevención de conflictos a doble nivel (servicio + base de datos) y flujos de validación exhaustivos para todas las reglas de negocio (RN-01 a RN-05, RN-08).
+
+**Cambios en esta validación**:
+- ✅ Separada ruta `POST /api/reservations/[id]/cancel` en archivo independiente para mayor claridad
+- ✅ Actualizado `app/reservations/page.tsx` para usar nueva ruta de cancelación
+- ✅ Simplificado `app/api/reservations/[id]/route.ts` a solo GET (cancelación separada)
 
 **Cobertura de requisitos**: 100% (RN-01, RN-02, RN-03, RN-04, RN-05, RN-08)
 

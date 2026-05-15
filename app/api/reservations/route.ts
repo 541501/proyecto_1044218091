@@ -53,28 +53,30 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
     const reservation = await createReservation(user.userId, validated);
 
     return NextResponse.json(reservation, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[POST /api/reservations] Error:', error);
 
     // Validation error
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validación fallida', details: error.errors },
+        { error: 'Validación fallida', details: (error as z.ZodError).errors },
         { status: 400 }
       );
     }
 
+    const err = error as Record<string, unknown>;
+
     // Business rule validation
-    if (error.code === 'VALIDATION_ERROR') {
+    if (err.code === 'VALIDATION_ERROR') {
       return NextResponse.json(
-        { error: error.message },
+        { error: String(err.message) },
         { status: 400 }
       );
     }
 
     // Conflict
-    if (error.code === 'CONFLICT' || error.code === 'RACE_CONDITION') {
-      const conflict = error.conflict;
+    if (err.code === 'CONFLICT' || err.code === 'RACE_CONDITION') {
+      const conflict = err.conflict as Record<string, unknown> | undefined;
       return NextResponse.json(
         {
           error: 'El salón ya está reservado en esa franja',

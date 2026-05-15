@@ -22,13 +22,22 @@ interface Reservation {
   block?: { code: string; name: string };
 }
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'profesor' | 'coordinador' | 'admin';
+  is_active: boolean;
+  must_change_password: boolean;
+}
+
 export default function ReservationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -104,7 +113,7 @@ export default function ReservationsPage() {
     setCanceling(true);
 
     try {
-      const res = await fetch(`/api/reservations/${selectedReservation.id}`, {
+      const res = await fetch(`/api/reservations/${selectedReservation.id}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -115,7 +124,7 @@ export default function ReservationsPage() {
       if (res.ok) {
         // Update local state
         setReservations(
-          reservations.map(r =>
+          reservations.map((r: Reservation) =>
             r.id === selectedReservation.id
               ? { ...r, status: 'cancelada' as const }
               : r
@@ -140,7 +149,7 @@ export default function ReservationsPage() {
     }
   };
 
-  const filteredReservations = reservations.filter(r => {
+  const filteredReservations = reservations.filter((r: Reservation) => {
     if (filter === 'all') return true;
     return r.status === filter;
   });
@@ -249,7 +258,7 @@ export default function ReservationsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredReservations.map(reservation => (
+            {filteredReservations.map((reservation: Reservation) => (
               <div
                 key={reservation.id}
                 className={`bg-white border border-slate-200 rounded-lg p-4 ${

@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as jose from 'jose';
 
+interface JWTPayload {
+  userId: string;
+  email: string;
+  role: 'profesor' | 'coordinador' | 'admin';
+  must_change_password: boolean;
+  iat?: number;
+  exp?: number;
+}
+
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'test-secret');
 
 const roleRoutes = {
@@ -29,7 +38,14 @@ export async function middleware(req: NextRequest) {
 
   try {
     const verified = await jose.jwtVerify(authToken, JWT_SECRET);
-    const role = (verified.payload as any).role as string;
+    const payload = verified.payload as unknown as JWTPayload;
+    const role = payload.role;
+    const mustChangePassword = payload.must_change_password;
+
+    // If must_change_password, redirect to /profile (except for /profile itself and /api/auth/change-password)
+    if (mustChangePassword && pathname !== '/profile' && !pathname.startsWith('/api/auth/change-password') && !pathname.startsWith('/api/auth/logout')) {
+      return NextResponse.redirect(new URL('/profile?action=change-password', req.url));
+    }
 
     // Proteger rutas por rol
     if (pathname.startsWith('/admin') && role !== 'admin') {
