@@ -128,7 +128,7 @@ export default function AdminRoomsPage() {
 
   if (!user || user.role !== 'admin') {
     return (
-      <AppLayout role={user?.role} userName={user?.name} showSeedBanner>
+      <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
         <div className="text-center py-12">
           <div className="text-red-600">Acceso denegado. Solo administradores.</div>
         </div>
@@ -137,7 +137,7 @@ export default function AdminRoomsPage() {
   }
 
   return (
-    <AppLayout role={user?.role} userName={user?.name} showSeedBanner>
+    <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
       <div className="max-w-6xl mx-auto">
         {/* Encabezado */}
         <div className="mb-8 flex items-center justify-between">

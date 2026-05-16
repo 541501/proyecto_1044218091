@@ -175,7 +175,7 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <AppLayout role={user?.role} userName={user?.name} showSeedBanner>
+    <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex justify-between items-start">

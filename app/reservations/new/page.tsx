@@ -151,7 +151,7 @@ export default function NewReservationPage() {
   const dateInvalid = isDateInvalid();
 
   return (
-    <AppLayout role={user?.role} userName={user?.name} showSeedBanner>
+    <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
       <div className="max-w-2xl mx-auto py-8">
         {/* Header */}
         <div className="mb-8">

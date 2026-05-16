@@ -90,7 +90,7 @@ export default function RoomDetailsPage({
   };
 
   return (
-    <AppLayout role={user?.role} userName={user?.name} showSeedBanner>
+    <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
       <div className="max-w-6xl mx-auto">
         {/* Encabezado */}
         <div className="mb-8">

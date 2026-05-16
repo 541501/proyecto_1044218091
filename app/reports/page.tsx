@@ -159,7 +159,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <AppLayout role={user?.role} userName={user?.name} showSeedBanner>
+    <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
