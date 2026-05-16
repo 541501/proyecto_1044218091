@@ -65,7 +65,7 @@ export async function PUT(
         );
       }
 
-      if (error.message?.includes('salón con este código')) {
+      if (error instanceof Error && error.message?.includes('salón con este código')) {
         return NextResponse.json(
           { error: error.message },
           { status: 409 }
