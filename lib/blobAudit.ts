@@ -32,7 +32,8 @@ export interface AuditEntry {
     | 'toggle_user'
     | 'login'
     | 'logout'
-    | 'bootstrap';
+    | 'bootstrap'
+    | 'change_password';
   entity: 'reservation' | 'room' | 'user' | 'system';
   entity_id?: string;
   summary: string;
