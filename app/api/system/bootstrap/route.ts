@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runMigrations } from '@/lib/pgMigrate';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { getSystemMode, clearSystemModeCache, recordAudit } from '@/lib/dataService';
+import { getSystemMode, clearSystemModeCache } from '@/lib/dataService';
 import * as seedReader from '@/lib/seedReader';
 
 // Use the Supabase secret key from the Vercel Marketplace integration as a
@@ -98,21 +98,6 @@ export async function POST(req: NextRequest) {
         },
       ]);
     }
-
-    // Record bootstrap in audit
-    const auditUser = adminUser || {
-      id: '00000000-0000-0000-0000-000000000001',
-      email: 'admin@classsport.edu.co',
-      role: 'admin' as const,
-    };
-    await recordAudit({
-      user_id: auditUser.id,
-      user_email: auditUser.email,
-      user_role: auditUser.role,
-      action: 'bootstrap',
-      entity: 'system',
-      summary: 'Sistema bootstrapped: migrations aplicadas, bloques/salones/franjas insertados',
-    });
 
     return NextResponse.json({
       success: true,

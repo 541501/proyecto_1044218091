@@ -1,13 +1,13 @@
 /**
  * ClassSport — DataService
  * ÚNICO punto de acceso a datos desde la aplicación.
- * Encapsula Supabase (live), seed.json (seed), y Vercel Blob (auditoría).
- * NUNCA se importa supabase.ts, blobAudit.ts directamente fuera de este módulo.
+ * Encapsula Supabase (live), seed.json (seed) y la auditoría (tabla audit_log).
+ * NUNCA se importa supabase.ts ni auditService.ts directamente fuera de este módulo.
  */
 
 import * as bcrypt from 'bcryptjs';
 import { getSupabaseAdmin } from './supabase';
-import * as blobAudit from './blobAudit';
+import * as auditService from './auditService';
 import * as seedReader from './seedReader';
 import * as pgMigrate from './pgMigrate';
 import { 
@@ -224,25 +224,12 @@ export async function listUsers(): Promise<SafeUser[]> {
 // AUDIT OPERATIONS
 // ============================================================================
 
-export async function recordAudit(entry: Omit<blobAudit.AuditEntry, 'id' | 'timestamp'>): Promise<void> {
-  const auditEntry: blobAudit.AuditEntry = {
-    id: crypto.randomUUID(),
-    timestamp: new Date().toISOString(),
-    ...entry,
-  };
-
-  // RN-08: audit MUST be persisted in prod. In local dev without a Blob token,
-  // degrade to console so the rest of the flow keeps working.
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.log('[audit:console]', auditEntry);
-    return;
-  }
-
-  await blobAudit.appendAudit(auditEntry);
+export async function recordAudit(entry: auditService.AuditEntryInput): Promise<void> {
+  await auditService.appendAudit(entry);
 }
 
-export async function readAuditMonth(yyyymm: string): Promise<blobAudit.AuditEntry[]> {
-  return blobAudit.readAuditMonth(yyyymm);
+export async function listAudit(filters: auditService.AuditFilters = {}) {
+  return auditService.listAudit(filters);
 }
 
 // ============================================================================
@@ -355,10 +342,10 @@ export async function createRoom(userId: string, data: CreateRoomRequest): Promi
       user_id: userId,
       user_email: 'unknown',
       user_role: 'admin',
-      action: 'create_room',
+      operation: 'INSERT',
       entity: 'room',
       entity_id: room.id,
-      summary: `Salón creado: ${data.code} en bloque ${data.block_id}`
+      summary: `Salón creado: ${data.code} en bloque ${data.block_id}`,
     });
 
     return room;
@@ -406,10 +393,10 @@ export async function updateRoom(id: string, userId: string, data: UpdateRoomReq
       user_id: userId,
       user_email: 'unknown',
       user_role: 'admin',
-      action: 'update_room',
+      operation: 'UPDATE',
       entity: 'room',
       entity_id: id,
-      summary: `Salón actualizado: ${room.code}`
+      summary: `Salón actualizado: ${room.code}`,
     });
 
     return room;
@@ -479,10 +466,10 @@ export async function confirmDeactivateRoom(id: string, userId: string): Promise
       user_id: userId,
       user_email: 'unknown',
       user_role: 'admin',
-      action: 'deactivate_room',
+      operation: 'UPDATE',
       entity: 'room',
       entity_id: id,
-      summary: `Salón desactivado: ${room.code}`
+      summary: `Salón desactivado: ${room.code}`,
     });
 
     return room;
@@ -634,10 +621,10 @@ export async function createReservation(userId: string, data: CreateReservationR
       user_id: userId,
       user_email: 'unknown',
       user_role: 'profesor',
-      action: 'create_reservation',
+      operation: 'INSERT',
       entity: 'reservation',
       entity_id: reservation.id,
-      summary: `Reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date} (${data.group_name})`
+      summary: `Reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date} (${data.group_name})`,
     });
 
     return reservation;
@@ -726,10 +713,10 @@ export async function cancelReservation(
       user_id: userId,
       user_email: 'unknown',
       user_role: role as any,
-      action: 'cancel_reservation',
+      operation: 'UPDATE',
       entity: 'reservation',
       entity_id: id,
-      summary: `Reserva cancelada: ${reservation.subject} en ${reservation.reservation_date} | Motivo: ${reason || 'N/A'}`
+      summary: `Reserva cancelada: ${reservation.subject} en ${reservation.reservation_date} | Motivo: ${reason || 'N/A'}`,
     });
 
     return canceledReservation;

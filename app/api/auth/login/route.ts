@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as bcrypt from 'bcryptjs';
 import { loginSchema } from '@/lib/schemas';
-import { getUserByEmail, toSafeUser, recordAudit } from '@/lib/dataService';
+import { getUserByEmail, toSafeUser } from '@/lib/dataService';
 import { signJWT, createAuthCookie } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
@@ -47,21 +47,6 @@ export async function POST(req: NextRequest) {
       role: user.role,
       must_change_password: user.must_change_password,
     });
-
-    // Record audit
-    try {
-      await recordAudit({
-        user_id: user.id,
-        user_email: user.email,
-        user_role: user.role,
-        action: 'login',
-        entity: 'user',
-        entity_id: user.id,
-        summary: `${user.name} inició sesión`,
-      });
-    } catch (auditErr) {
-      console.warn('[login] Audit recording failed:', auditErr);
-    }
 
     // Create response
     const response = NextResponse.json({

@@ -63,8 +63,7 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({
       mode,
       supabase,
-      blob: envPresent('BLOB_READ_WRITE_TOKEN') ? 'configured' : 'not_configured',
-      jwt: envPresent('JWT_SECRET') ? 'configured' : 'not_configured',
+      jwt: envPresent('JWT_SECRET', 'ClassSport_SUPABASE_JWT_SECRET') ? 'configured' : 'not_configured',
       database_url: envPresent(
         'DATABASE_URL',
         'ClassSport_POSTGRES_URL_NON_POOLING',

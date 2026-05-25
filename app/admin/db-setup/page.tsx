@@ -12,7 +12,7 @@ import { useToast } from '@/components/ui/Toast';
 interface DiagnosticData {
   mode: 'seed' | 'live';
   supabase: 'connected' | 'unreachable' | 'not_configured';
-  blob: 'configured' | 'not_configured';
+  jwt: 'configured' | 'not_configured';
   database_url: string;
   migrations: {
     applied: string[];
@@ -138,9 +138,9 @@ export default function DbSetupPage() {
               </Badge>
             </div>
             <div>
-              <p className="text-sm text-slate-600 mb-1">Vercel Blob</p>
-              <Badge variant={diagnostic.blob === 'configured' ? 'success' : 'danger'}>
-                {diagnostic.blob}
+              <p className="text-sm text-slate-600 mb-1">JWT</p>
+              <Badge variant={diagnostic.jwt === 'configured' ? 'success' : 'danger'}>
+                {diagnostic.jwt}
               </Badge>
             </div>
             <div>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as bcrypt from 'bcryptjs';
 import { changePasswordSchema } from '@/lib/schemas';
-import { getUserById, updateUser, recordAudit } from '@/lib/dataService';
+import { getUserById, updateUser } from '@/lib/dataService';
 import { authenticatedRoute } from '@/lib/withAuth';
 import * as jose from 'jose';
 
@@ -63,21 +63,6 @@ async function handleChangePassword(req: NextRequest, user: any) {
       password_hash: newPasswordHash,
       must_change_password: false,
     });
-
-    // Record audit
-    try {
-      await recordAudit({
-        user_id: user.userId,
-        user_email: user.email,
-        user_role: user.role,
-        action: 'change_password',
-        entity: 'user',
-        entity_id: user.userId,
-        summary: `Cambió su contraseña${mustChangePassword ? ' (cambio forzado)' : ''}`,
-      });
-    } catch (auditErr) {
-      console.warn('[change-password] Audit recording failed:', auditErr);
-    }
 
     return NextResponse.json({ success: true, message: 'Password changed successfully' });
   } catch (err) {
