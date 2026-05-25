@@ -20,61 +20,68 @@ export async function POST(req: NextRequest) {
     // Clear mode cache to re-detect live mode
     clearSystemModeCache();
 
-    // Insert seed data into Postgres
+    // PostgREST schema cache may lag behind DDL — wait a moment so inserts succeed.
+    await new Promise((r) => setTimeout(r, 1500));
+
+    // Insert seed data into Postgres (idempotent: upsert on primary key)
     const supabase = getSupabaseAdmin();
+    const insertResults: Record<string, { inserted: number; error?: string }> = {};
 
-    // Insert blocks
+    async function upsert(table: string, rows: any[]) {
+      if (rows.length === 0) {
+        insertResults[table] = { inserted: 0 };
+        return;
+      }
+      const { error, data } = await supabase.from(table).upsert(rows, { onConflict: 'id' }).select();
+      insertResults[table] = { inserted: data?.length ?? 0, error: error?.message };
+      if (error) console.error(`[bootstrap] upsert ${table} failed:`, error);
+    }
+
     const seedBlocks = await seedReader.getBlocks();
-    if (seedBlocks.length > 0) {
-      await supabase.from('blocks').insert(
-        seedBlocks.map((b) => ({
-          id: b.id,
-          name: b.name,
-          code: b.code,
-          is_active: b.is_active,
-          created_at: b.created_at,
-        }))
-      );
-    }
+    await upsert(
+      'blocks',
+      seedBlocks.map((b) => ({
+        id: b.id,
+        name: b.name,
+        code: b.code,
+        is_active: b.is_active,
+        created_at: b.created_at,
+      })),
+    );
 
-    // Insert slots
     const seedSlots = await seedReader.getSlots();
-    if (seedSlots.length > 0) {
-      await supabase.from('slots').insert(
-        seedSlots.map((s) => ({
-          id: s.id,
-          name: s.name,
-          start_time: s.start_time,
-          end_time: s.end_time,
-          order_index: s.order_index,
-          is_active: s.is_active,
-        }))
-      );
-    }
+    await upsert(
+      'slots',
+      seedSlots.map((s) => ({
+        id: s.id,
+        name: s.name,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        order_index: s.order_index,
+        is_active: s.is_active,
+      })),
+    );
 
-    // Insert rooms
     const seedRooms = await seedReader.getRooms();
-    if (seedRooms.length > 0) {
-      await supabase.from('rooms').insert(
-        seedRooms.map((r) => ({
-          id: r.id,
-          block_id: r.block_id,
-          code: r.code,
-          type: r.type,
-          capacity: r.capacity,
-          equipment: r.equipment,
-          is_active: r.is_active,
-          created_at: r.created_at,
-          updated_at: r.updated_at,
-        }))
-      );
-    }
+    await upsert(
+      'rooms',
+      seedRooms.map((r) => ({
+        id: r.id,
+        block_id: r.block_id,
+        code: r.code,
+        type: r.type,
+        capacity: r.capacity,
+        equipment: r.equipment,
+        is_active: r.is_active,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+      })),
+    );
 
-    // Insert seed admin user
     const seedUsers = await seedReader.getUsers();
     const adminUser = seedUsers.find((u) => u.role === 'admin');
     if (adminUser) {
-      await supabase.from('users').insert([
+      await upsert('users', [
         {
           id: adminUser.id,
           name: adminUser.name,
@@ -106,6 +113,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       appliedMigrations,
+      seed: insertResults,
       message: 'Bootstrap completed. System is now in live mode.',
     });
   } catch (err) {

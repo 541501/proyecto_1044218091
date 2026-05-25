@@ -21,10 +21,11 @@ const UpdateRoomSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const room = await getRoomById(params.id);
+    const { id } = await params;
+    const room = await getRoomById(id);
 
     if (!room) {
       return NextResponse.json(
@@ -45,14 +46,15 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   return withRole(['admin'])(async (req: NextRequest, user: JWTPayload) => {
     try {
       const body = await req.json();
       const validated = UpdateRoomSchema.parse(body);
 
-      const room = await updateRoom(params.id, user.userId, validated);
+      const room = await updateRoom(id, user.userId, validated);
 
       return NextResponse.json(room);
     } catch (error: unknown) {

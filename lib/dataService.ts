@@ -41,33 +41,25 @@ export async function getSystemMode(): Promise<'seed' | 'live'> {
     return systemMode;
   }
 
-  try {
-    // First, try to load seed.json. If it exists, we might be in seed mode.
-    const seed = await seedReader.loadSeed();
-    if (seed && seed.users && seed.users.length > 0) {
-      // seed.json exists and has data — prefer this (easier for local dev)
-      systemMode = 'seed';
-      return 'seed';
-    }
-  } catch (seedErr) {
-    // seed.json doesn't exist or is invalid — proceed to live mode check
-  }
-
+  // 1) Live first: if `_migrations` exists in Postgres, the bootstrap ran → live.
   try {
     const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('_migrations')
-      .select('count')
+      .select('filename')
       .limit(1);
 
-    // If we can query, we're in live mode
-    systemMode = 'live';
+    if (!error) {
+      systemMode = 'live';
+      return 'live';
+    }
   } catch (err) {
-    // If table doesn't exist or connection fails, default to seed
-    systemMode = 'seed';
+    // fall through to seed fallback
   }
 
-  return systemMode;
+  // 2) Fallback: seed.json drives initial admin login until bootstrap runs.
+  systemMode = 'seed';
+  return 'seed';
 }
 
 /**
@@ -239,6 +231,13 @@ export async function recordAudit(entry: Omit<blobAudit.AuditEntry, 'id' | 'time
     ...entry,
   };
 
+  // RN-08: audit MUST be persisted in prod. In local dev without a Blob token,
+  // degrade to console so the rest of the flow keeps working.
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.log('[audit:console]', auditEntry);
+    return;
+  }
+
   await blobAudit.appendAudit(auditEntry);
 }
 
@@ -256,7 +255,8 @@ export async function getBlocks() {
     return seedReader.getBlocks();
   }
   const supabase = getSupabaseAdmin();
-  const { data } = await supabase.from('blocks').select('*').eq('is_active', true);
+  const { data, error } = await supabase.from('blocks').select('*').is('is_active', true);
+  if (error) console.error('[getBlocks]', error);
   return data || [];
 }
 
@@ -266,7 +266,7 @@ export async function getSlots() {
     return seedReader.getSlots();
   }
   const supabase = getSupabaseAdmin();
-  const { data } = await supabase.from('slots').select('*').eq('is_active', true).order('order_index');
+  const { data } = await supabase.from('slots').select('*').is('is_active', true).order('order_index');
   return data || [];
 }
 
@@ -291,10 +291,11 @@ export async function getRooms(filters?: { blockId?: string; isActive?: boolean 
   }
 
   if (filters?.isActive !== undefined) {
-    query = query.eq('is_active', filters.isActive);
+    query = query.is('is_active', filters.isActive);
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) console.error('[getRooms] error=', error);
   return data || [];
 }
 

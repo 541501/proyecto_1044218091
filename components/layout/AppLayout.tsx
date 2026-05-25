@@ -6,11 +6,11 @@ import { UserRole } from '@/lib/types';
 export interface AppLayoutProps {
   children: React.ReactNode;
   role: UserRole;
-  userName: string;
+  userName?: string;
   showSeedBanner?: boolean;
 }
 
-export const AppLayout: React.FC<AppLayoutProps> = ({ children, role, userName, showSeedBanner = false }) => (
+export const AppLayout: React.FC<AppLayoutProps> = ({ children, role, userName = '', showSeedBanner = false }) => (
   <div className="flex">
     <Sidebar role={role} userName={userName} />
     <main className="flex-1 ml-64">

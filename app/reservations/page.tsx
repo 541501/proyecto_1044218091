@@ -32,6 +32,14 @@ interface User {
 }
 
 export default function ReservationsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-500">Cargando…</div>}>
+      <ReservationsContent />
+    </Suspense>
+  );
+}
+
+function ReservationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 

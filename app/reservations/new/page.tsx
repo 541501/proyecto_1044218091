@@ -8,6 +8,14 @@ import { Button } from '@/components/ui/Button';
 import { ChevronLeft } from 'lucide-react';
 
 export default function NewReservationPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-500">Cargando…</div>}>
+      <NewReservationContent />
+    </Suspense>
+  );
+}
+
+function NewReservationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 

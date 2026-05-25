@@ -8,9 +8,10 @@ import { buildWeeklyCalendar } from '@/lib/availabilityService';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const searchParams = request.nextUrl.searchParams;
     let weekStart = searchParams.get('weekStart');
 
@@ -23,7 +24,7 @@ export async function GET(
       weekStart = monday.toISOString().split('T')[0];
     }
 
-    const calendar = await buildWeeklyCalendar(params.id, weekStart);
+    const calendar = await buildWeeklyCalendar(id, weekStart);
 
     return NextResponse.json(calendar);
   } catch (error) {

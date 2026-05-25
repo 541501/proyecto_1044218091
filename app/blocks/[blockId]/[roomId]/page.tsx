@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import WeeklyCalendar from '@/components/calendar/WeeklyCalendar';
@@ -8,11 +8,12 @@ import { WeeklyCalendar as WeeklyCalendarType } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { ChevronLeft } from 'lucide-react';
 
-export default function RoomDetailsPage({ 
-  params 
-}: { 
-  params: { blockId: string; roomId: string } 
+export default function RoomDetailsPage({
+  params: paramsPromise
+}: {
+  params: Promise<{ blockId: string; roomId: string }>
 }) {
+  const params = use(paramsPromise);
   const router = useRouter();
   const searchParams = useSearchParams();
   

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import RoomCard from '@/components/blocks/RoomCard';
@@ -8,7 +8,8 @@ import { RoomWithBlock, BlockAvailability } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { ChevronLeft, Calendar } from 'lucide-react';
 
-export default function BlockDetailsPage({ params }: { params: { blockId: string } }) {
+export default function BlockDetailsPage({ params: paramsPromise }: { params: Promise<{ blockId: string }> }) {
+  const params = use(paramsPromise);
   const router = useRouter();
   const searchParams = useSearchParams();
   

@@ -8,13 +8,14 @@ import { getBlockAvailability } from '@/lib/availabilityService';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const searchParams = request.nextUrl.searchParams;
     const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
 
-    const availability = await getBlockAvailability(params.id, date);
+    const availability = await getBlockAvailability(id, date);
 
     return NextResponse.json(availability);
   } catch (error) {

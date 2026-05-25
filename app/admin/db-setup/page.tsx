@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 
 interface DiagnosticData {
   mode: 'seed' | 'live';
-  supabase: 'connected' | 'not_configured';
+  supabase: 'connected' | 'unreachable' | 'not_configured';
   blob: 'configured' | 'not_configured';
   database_url: string;
   migrations: {

@@ -22,11 +22,11 @@ const CancelReservationSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   return authenticatedRoute(async (req: NextRequest, user: JWTPayload) => {
     try {
-      const { id } = params;
       const body = await req.json();
       const validated = CancelReservationSchema.parse(body);
 

@@ -4,10 +4,18 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/Toast';
 
 export default function ProfilePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-500">Cargando…</div>}>
+      <ProfileContent />
+    </Suspense>
+  );
+}
+
+function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addToast } = useToast();

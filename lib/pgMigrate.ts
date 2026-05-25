@@ -3,8 +3,21 @@ import { Pool, QueryResult } from 'pg';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+const rawConnectionString =
+  process.env.DATABASE_URL ||
+  process.env.ClassSport_POSTGRES_URL_NON_POOLING ||
+  process.env.ClassSport_POSTGRES_URL;
+
+// Strip sslmode from the URL so our explicit ssl option below is honored.
+// Supabase pooler chain is not validated as verify-full by Node's default trust store.
+const connectionString = rawConnectionString
+  ?.replace(/[?&]sslmode=[^&]*/g, '')
+  .replace(/\?&/, '?')
+  .replace(/[?&]$/, '');
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
+  ssl: connectionString ? { rejectUnauthorized: false } : undefined,
 });
 
 /**
