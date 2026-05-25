@@ -1,7 +1,10 @@
 import * as jose from 'jose';
 import { JWTPayload } from './types';
 
-const JWT_SECRET = process.env.JWT_SECRET;
+// Vercel projects bootstrapped via the Supabase Marketplace integration only
+// have ClassSport_* env vars. Reuse the Supabase JWT secret for app sessions
+// when our own JWT_SECRET isn't provided.
+const JWT_SECRET = process.env.JWT_SECRET || process.env.ClassSport_SUPABASE_JWT_SECRET;
 
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is not set');

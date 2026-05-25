@@ -5,7 +5,9 @@ import { getUserById, updateUser, recordAudit } from '@/lib/dataService';
 import { authenticatedRoute } from '@/lib/withAuth';
 import * as jose from 'jose';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'test-secret');
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || process.env.ClassSport_SUPABASE_JWT_SECRET || 'test-secret',
+);
 
 async function handleChangePassword(req: NextRequest, user: any) {
   try {

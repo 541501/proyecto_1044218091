@@ -10,7 +10,9 @@ interface JWTPayload {
   exp?: number;
 }
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'test-secret');
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || process.env.ClassSport_SUPABASE_JWT_SECRET || 'test-secret',
+);
 
 const roleRoutes = {
   admin: ['/admin', '/reports'],

@@ -4,7 +4,11 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { getSystemMode, clearSystemModeCache, recordAudit } from '@/lib/dataService';
 import * as seedReader from '@/lib/seedReader';
 
-const BOOTSTRAP_SECRET = process.env.ADMIN_BOOTSTRAP_SECRET;
+// Use the Supabase secret key from the Vercel Marketplace integration as a
+// fallback so the bootstrap endpoint stays protected without provisioning an
+// extra env var. Set ADMIN_BOOTSTRAP_SECRET to override.
+const BOOTSTRAP_SECRET =
+  process.env.ADMIN_BOOTSTRAP_SECRET || process.env.ClassSport_SUPABASE_SECRET_KEY;
 
 export async function POST(req: NextRequest) {
   try {
