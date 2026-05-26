@@ -3,49 +3,53 @@
 @tailwind utilities;
 
 /* ──────────────────────────────────────────────────────────────────────────
-   ClassSport · Editorial Academic
-   Warm paper bg, institutional indigo anchor, accent gold for callouts.
+   ClassSport · Cobalt classic
+   Pergamino + cobalto profundo + dorado antiguo. Biblioteca universitaria
+   clásica — formal, alto contraste donde importa.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
   /* Paper & ink */
-  --paper:      #FAF7F0;
-  --paper-soft: #F3EFE6;
-  --surface:    #FFFFFF;
-  --ink:        #14181D;
-  --ink-soft:   #4B5563;
+  --paper:      #F5F3EE;   /* pergamino */
+  --paper-soft: #EBE7DD;   /* pergamino con sombra */
+  --surface:    #FCFAF4;   /* hoja blanca con tinte cálido */
+  --ink:        #14181D;   /* tinta */
+  --ink-soft:   #4A4F56;
   --ink-mute:   #8A8F96;
-  --rule:       #E4DED1;
-  --rule-soft:  #EFEAE0;
+  --rule:       #D9D3C2;   /* línea desgastada de libro */
+  --rule-soft:  #E4DFCE;
 
-  /* Brand — monocromática cálida (ink + dorado son los únicos acentos) */
-  --brand:        #14181D;   /* alias de ink — sin azul */
-  --brand-soft:   #2A2620;   /* sepia profundo para hover sobre ink */
-  --brand-tint:   #EEE7D5;   /* beige cálido — reemplaza el azul claro */
-  --accent:       #B45309;   /* dorado académico */
-  --accent-soft:  #FEF3E2;
-  --accent-deep:  #92400E;   /* dorado más profundo para hover */
+  /* Cobalto profundo — color institucional principal */
+  --brand:        #1D2A57;
+  --brand-soft:   #243169;   /* hover */
+  --brand-deep:   #131B3C;   /* contraste fuerte */
+  --brand-tint:   #E5E4EE;   /* halo para badges informativos */
+
+  /* Dorado antiguo — acento editorial (italicas, medallas, hover de iconos) */
+  --accent:       #C9A961;
+  --accent-soft:  #F4EFD9;
+  --accent-deep:  #8C7233;
 
   /* Status */
   --ok:        #15803D;
-  --ok-bg:     #ECFDF3;
+  --ok-bg:     #ECF6EE;
   --warn:      #B45309;
-  --warn-bg:   #FEF3E2;
+  --warn-bg:   #F8EED5;
   --bad:       #B91C1C;
-  --bad-bg:    #FEF2F2;
+  --bad-bg:    #F8E6E2;
 
   /* Slots */
   --slot-free:        #15803D;
-  --slot-free-bg:     #ECFDF3;
+  --slot-free-bg:     #ECF6EE;
   --slot-occupied:    #B91C1C;
-  --slot-occupied-bg: #FEF2F2;
+  --slot-occupied-bg: #F8E6E2;
   --slot-past:        #9CA3AF;
-  --slot-past-bg:     #F5F2EA;
+  --slot-past-bg:     #EFEBDC;
 
-  /* Seed banner */
-  --seed-bg:     #FDF6E3;
-  --seed-text:   #92400E;
-  --seed-border: #D9A441;
+  /* Seed banner (legacy — no se renderiza pero las vars existen) */
+  --seed-bg:     #F4EFD9;
+  --seed-text:   #8C7233;
+  --seed-border: #C9A961;
 }
 
 * {
@@ -67,7 +71,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-image:
-    radial-gradient(circle at 1px 1px, rgba(20,24,29,0.04) 1px, transparent 0);
+    radial-gradient(circle at 1px 1px, rgba(29, 42, 87, 0.045) 1px, transparent 0);
   background-size: 28px 28px;
   background-position: -14px -14px;
 }
@@ -119,8 +123,8 @@ body {
 
 .field:focus {
   outline: none;
-  border-color: var(--ink);
-  box-shadow: 0 1px 0 var(--accent);
+  border-color: var(--brand);
+  box-shadow: 0 1px 0 var(--brand);
 }
 
 .field::placeholder {

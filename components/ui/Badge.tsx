@@ -12,9 +12,9 @@ const variants: Record<Variant, string> = {
   success: 'text-ok border-ok/40 bg-ok-bg',
   danger: 'text-bad border-bad/40 bg-bad-bg',
   warning: 'text-warn border-warn/40 bg-warn-bg',
-  info: 'text-ink border-ink/25 bg-paper-soft',
-  brand: 'text-paper border-ink bg-ink',
-  accent: 'text-accent border-accent/40 bg-accent-soft',
+  info: 'text-brand border-brand/30 bg-brand-tint',
+  brand: 'text-paper border-brand bg-brand',
+  accent: 'text-accent-deep border-accent/50 bg-accent-soft',
 };
 
 export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(

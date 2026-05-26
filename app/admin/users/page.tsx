@@ -262,7 +262,7 @@ export default function AdminUsersPage() {
                       <div className="inline-flex items-center gap-1">
                         <button
                           onClick={() => openEditModal(u)}
-                          className="p-1.5 text-ink-mute hover:text-accent hover:bg-accent-soft transition-colors"
+                          className="p-1.5 text-ink-mute hover:text-brand hover:bg-brand-tint transition-colors"
                           title="Editar usuario"
                         >
                           <IconPencil size={16} />

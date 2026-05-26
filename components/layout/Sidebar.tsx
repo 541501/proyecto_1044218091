@@ -11,8 +11,12 @@ import {
   IconChart,
   IconShield,
   IconUser,
+  IconUsers,
   IconLogout,
   IconDot,
+  IconDoorway,
+  IconArchive,
+  IconSettings,
 } from '@/components/icons';
 
 export interface SidebarProps {
@@ -38,7 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, userName }) => {
   const pathname = usePathname();
   const router = useRouter();
 
-  const items: NavItem[] = [
+  const general: NavItem[] = [
     { label: 'Panel', hint: '01', href: '/dashboard', icon: <IconBookOpen size={18} />, show: true },
     { label: 'Bloques', hint: '02', href: '/blocks', icon: <IconColumns size={18} />, show: true },
     {
@@ -62,14 +66,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, userName }) => {
       icon: <IconChart size={18} />,
       show: role === 'coordinador' || role === 'admin',
     },
-    {
-      label: 'Administración',
-      hint: '05',
-      href: '/admin/db-setup',
-      icon: <IconShield size={18} />,
-      show: role === 'admin',
-    },
-    { label: 'Perfil', hint: '06', href: '/profile', icon: <IconUser size={18} />, show: true },
+  ];
+
+  const adminItems: NavItem[] = [
+    { label: 'Salones', hint: '05', href: '/admin/rooms', icon: <IconDoorway size={18} />, show: true },
+    { label: 'Usuarios', hint: '06', href: '/admin/users', icon: <IconUsers size={18} />, show: true },
+    { label: 'Auditoría', hint: '07', href: '/admin/audit', icon: <IconArchive size={18} />, show: true },
+    { label: 'Sistema', hint: '08', href: '/admin/db-setup', icon: <IconSettings size={18} />, show: true },
   ];
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/');
@@ -77,6 +80,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, userName }) => {
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
+  };
+
+  const renderItem = (item: NavItem) => {
+    const active = isActive(item.href);
+    return (
+      <li key={item.href}>
+        <Link
+          href={item.href}
+          className={[
+            'flex items-center gap-3 px-3 py-2.5 text-sm transition-colors group relative',
+            active
+              ? 'bg-ink text-paper'
+              : 'text-ink-soft hover:text-ink hover:bg-paper-soft',
+          ].join(' ')}
+        >
+          <span
+            className={[
+              'font-mono text-[10px] w-5',
+              active ? 'text-paper/70' : 'text-ink-mute group-hover:text-ink-soft',
+            ].join(' ')}
+          >
+            {item.hint}
+          </span>
+          <span className={active ? 'text-paper' : ''}>{item.icon}</span>
+          <span className="flex-1">{item.label}</span>
+          {active ? <IconDot size={6} className="text-accent" /> : null}
+        </Link>
+      </li>
+    );
   };
 
   return (
@@ -107,50 +139,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, userName }) => {
         <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute px-3 mb-2">
           Secciones
         </div>
-        <ul className="space-y-px">
-          {items
-            .filter((i) => i.show)
-            .map((item) => {
-              const active = isActive(item.href);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={[
-                      'flex items-center gap-3 px-3 py-2.5 text-sm transition-colors group relative',
-                      active
-                        ? 'bg-ink text-paper'
-                        : 'text-ink-soft hover:text-ink hover:bg-paper-soft',
-                    ].join(' ')}
-                  >
-                    <span
-                      className={[
-                        'font-mono text-[10px] w-5',
-                        active ? 'text-paper/70' : 'text-ink-mute group-hover:text-ink-soft',
-                      ].join(' ')}
-                    >
-                      {item.hint}
-                    </span>
-                    <span className={active ? 'text-paper' : ''}>{item.icon}</span>
-                    <span className="flex-1">{item.label}</span>
-                    {active ? <IconDot size={6} className="text-accent" /> : null}
-                  </Link>
-                </li>
-              );
-            })}
-        </ul>
+        <ul className="space-y-px">{general.filter((i) => i.show).map(renderItem)}</ul>
+
+        {role === 'admin' ? (
+          <>
+            <div className="mt-7 px-3 mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+              <IconShield size={12} />
+              <span>Administración</span>
+            </div>
+            <ul className="space-y-px">{adminItems.filter((i) => i.show).map(renderItem)}</ul>
+          </>
+        ) : null}
       </nav>
 
       <div className="rule mx-7" />
 
       {/* User */}
       <div className="px-7 py-5">
-        <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-1">
-          Sesión activa
+        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-1">
+          <IconUser size={12} />
+          <span>Sesión activa</span>
         </div>
-        <div className="font-display text-lg text-ink leading-tight truncate">
-          {userName || 'Sin nombre'}
-        </div>
+        <Link href="/profile" className="block group">
+          <div className="font-display text-lg text-ink leading-tight truncate group-hover:underline decoration-accent">
+            {userName || 'Sin nombre'}
+          </div>
+        </Link>
         <div className="text-[12px] text-ink-soft mt-0.5">{ROLE_LABEL[role] ?? role}</div>
 
         <button
