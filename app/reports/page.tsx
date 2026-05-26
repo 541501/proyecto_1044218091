@@ -184,7 +184,7 @@ export default function ReportsPage() {
                 ))}
               </select>
             </div>
-            <Button variant="ink" onClick={handleGenerate} isLoading={loading}>
+            <Button variant="primary" onClick={handleGenerate} isLoading={loading}>
               <IconArrowRight size={14} />
               Generar reporte
             </Button>

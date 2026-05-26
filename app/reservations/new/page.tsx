@@ -237,7 +237,7 @@ function NewReservationContent() {
               </Button>
               <Button
                 type="submit"
-                variant="ink"
+                variant="primary"
                 isLoading={loading}
                 disabled={loading || isDateInvalid || !subject.trim() || !groupName.trim()}
               >

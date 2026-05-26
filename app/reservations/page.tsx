@@ -188,7 +188,7 @@ function ReservationsContent() {
                   className={[
                     'inline-flex items-baseline gap-2 px-3 py-2 border transition-colors text-sm',
                     active
-                      ? 'bg-ink text-paper border-ink'
+                      ? 'bg-brand text-paper border-brand'
                       : 'bg-transparent text-ink-soft border-rule hover:border-ink hover:text-ink',
                   ].join(' ')}
                 >

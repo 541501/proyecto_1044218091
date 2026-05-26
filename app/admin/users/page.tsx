@@ -195,7 +195,7 @@ export default function AdminUsersPage() {
               Usuarios
               <span className="italic text-accent"> del sistema</span>
             </h1>
-            <Button variant="ink" onClick={() => setOpenCreate(true)}>
+            <Button variant="primary" onClick={() => setOpenCreate(true)}>
               <IconPlus size={14} />
               Nuevo usuario
             </Button>
@@ -297,11 +297,11 @@ export default function AdminUsersPage() {
           size="md"
           actions={
             tempPassword
-              ? [{ label: 'Listo', variant: 'ink', onClick: closeCreate }]
+              ? [{ label: 'Listo', variant: 'primary', onClick: closeCreate }]
               : [
                   {
                     label: 'Crear cuenta',
-                    variant: 'ink',
+                    variant: 'primary',
                     onClick: handleCreate,
                     isLoading: submitting,
                   },
@@ -389,7 +389,7 @@ export default function AdminUsersPage() {
                         className={[
                           'px-3 py-2 border text-sm transition-colors',
                           active
-                            ? 'bg-ink text-paper border-ink'
+                            ? 'bg-brand text-paper border-brand'
                             : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
                         ].join(' ')}
                       >
@@ -414,7 +414,7 @@ export default function AdminUsersPage() {
           actions={[
             {
               label: 'Guardar',
-              variant: 'ink',
+              variant: 'primary',
               onClick: handleEdit,
               isLoading: submitting,
             },
@@ -453,7 +453,7 @@ export default function AdminUsersPage() {
                       className={[
                         'px-3 py-2 border text-sm transition-colors',
                         active
-                          ? 'bg-ink text-paper border-ink'
+                          ? 'bg-brand text-paper border-brand'
                           : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
                       ].join(' ')}
                     >

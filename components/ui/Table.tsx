@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 export interface TableColumn<T> {
   key: keyof T;
@@ -16,14 +16,14 @@ export interface TableProps<T> {
 
 export const Table = React.forwardRef<HTMLTableElement, TableProps<any>>(
   ({ columns, data, rowKey, onRowClick }, ref) => (
-    <div className="overflow-x-auto border border-slate-200 rounded-lg">
-      <table ref={ref} className="w-full">
-        <thead className="bg-slate-50 border-b border-slate-200">
-          <tr>
+    <div className="border border-rule bg-surface overflow-x-auto">
+      <table ref={ref} className="w-full text-sm">
+        <thead className="bg-paper-soft border-b border-rule">
+          <tr className="text-left text-ink-mute">
             {columns.map((col) => (
               <th
                 key={String(col.key)}
-                className="px-6 py-3 text-left text-sm font-semibold text-slate-900"
+                className="px-4 py-3 font-mono text-[10px] uppercase tracking-wide font-medium"
                 style={{ width: col.width }}
               >
                 {col.label}
@@ -31,10 +31,10 @@ export const Table = React.forwardRef<HTMLTableElement, TableProps<any>>(
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-rule">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-6 py-8 text-center text-slate-500">
+              <td colSpan={columns.length} className="px-4 py-8 text-center text-ink-mute italic">
                 Sin datos
               </td>
             </tr>
@@ -42,11 +42,11 @@ export const Table = React.forwardRef<HTMLTableElement, TableProps<any>>(
             data.map((row, idx) => (
               <tr
                 key={String(row[rowKey]) || idx}
-                className="border-b border-slate-200 hover:bg-slate-50 cursor-pointer"
+                className={onRowClick ? 'cursor-pointer hover:bg-paper-soft' : ''}
                 onClick={() => onRowClick?.(row)}
               >
                 {columns.map((col) => (
-                  <td key={String(col.key)} className="px-6 py-4 text-sm text-slate-900">
+                  <td key={String(col.key)} className="px-4 py-3 text-ink-soft">
                     {col.render ? col.render(row[col.key], row) : String(row[col.key])}
                   </td>
                 ))}
@@ -56,7 +56,7 @@ export const Table = React.forwardRef<HTMLTableElement, TableProps<any>>(
         </tbody>
       </table>
     </div>
-  )
+  ),
 );
 
 Table.displayName = 'Table';

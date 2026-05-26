@@ -188,7 +188,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="mt-3 h-px bg-rule relative">
                           <div
-                            className="absolute inset-y-0 left-0 h-px bg-ink"
+                            className="absolute inset-y-0 left-0 h-px bg-brand"
                             style={{ width: `${pct}%` }}
                           />
                         </div>

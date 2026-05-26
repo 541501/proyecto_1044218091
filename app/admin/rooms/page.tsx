@@ -120,7 +120,7 @@ function AdminRoomsContent() {
               Salones
               <span className="italic text-accent"> académicos</span>
             </h1>
-            <Button variant="ink" onClick={() => router.push('/admin/rooms/new')}>
+            <Button variant="primary" onClick={() => router.push('/admin/rooms/new')}>
               <IconPlus size={14} />
               Nuevo salón
             </Button>
@@ -145,7 +145,7 @@ function AdminRoomsContent() {
             onClick={() => setSelectedBlock(null)}
             className={[
               'px-3 py-2 border text-sm transition-colors',
-              !selectedBlock ? 'bg-ink text-paper border-ink' : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
+              !selectedBlock ? 'bg-brand text-paper border-brand' : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
             ].join(' ')}
           >
             <span className="font-mono text-[11px] uppercase tracking-wide">Todos</span>
@@ -158,7 +158,7 @@ function AdminRoomsContent() {
                 onClick={() => setSelectedBlock(b.id)}
                 className={[
                   'px-3 py-2 border text-sm transition-colors',
-                  active ? 'bg-ink text-paper border-ink' : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
+                  active ? 'bg-brand text-paper border-brand' : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
                 ].join(' ')}
               >
                 <span className="font-mono text-[11px] uppercase tracking-wide">

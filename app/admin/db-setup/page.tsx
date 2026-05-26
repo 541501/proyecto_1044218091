@@ -225,7 +225,7 @@ export default function DbSetupPage() {
           </p>
           {diagnostic.migrations.pending > 0 ? (
             <div className="mt-5">
-              <Button variant="ink" onClick={() => setShowSecretModal(true)}>
+              <Button variant="primary" onClick={() => setShowSecretModal(true)}>
                 Aplicar migrations pendientes
               </Button>
             </div>
@@ -241,7 +241,7 @@ export default function DbSetupPage() {
           actions={[
             {
               label: 'Confirmar',
-              variant: 'ink',
+              variant: 'primary',
               onClick: confirmBootstrap,
               isLoading: bootstrapping,
             },

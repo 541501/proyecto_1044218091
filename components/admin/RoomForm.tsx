@@ -176,7 +176,7 @@ export default function RoomForm({
                 className={[
                   'border p-3 transition-colors text-left',
                   active
-                    ? 'border-ink bg-ink text-paper'
+                    ? 'border-brand bg-brand text-paper'
                     : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
                 ].join(' ')}
               >
@@ -224,7 +224,7 @@ export default function RoomForm({
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit" variant="ink" isLoading={isSubmitting}>
+        <Button type="submit" variant="primary" isLoading={isSubmitting}>
           <IconCheck size={14} />
           {mode === 'create' ? 'Crear salón' : 'Guardar cambios'}
         </Button>

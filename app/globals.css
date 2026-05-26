@@ -3,53 +3,53 @@
 @tailwind utilities;
 
 /* ──────────────────────────────────────────────────────────────────────────
-   ClassSport · Cobalt classic
-   Pergamino + cobalto profundo + dorado antiguo. Biblioteca universitaria
-   clásica — formal, alto contraste donde importa.
+   ClassSport · Midnight cobalto (dark editorial)
+   Fondo cobalto-medianoche, texto marfil, acentos en cobalto eléctrico
+   y dorado saturado. Cero beige. Premium, alto contraste, nocturno.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Paper & ink */
-  --paper:      #F5F3EE;   /* pergamino */
-  --paper-soft: #EBE7DD;   /* pergamino con sombra */
-  --surface:    #FCFAF4;   /* hoja blanca con tinte cálido */
-  --ink:        #14181D;   /* tinta */
-  --ink-soft:   #4A4F56;
-  --ink-mute:   #8A8F96;
-  --rule:       #D9D3C2;   /* línea desgastada de libro */
-  --rule-soft:  #E4DFCE;
+  /* Fondo y tinta — invertidos */
+  --paper:      #0B1538;   /* midnight cobalto profundo */
+  --paper-soft: #131D45;   /* sombra de página */
+  --surface:    #16224E;   /* tarjetas — un punto más claras que el fondo */
+  --ink:        #F4ECD8;   /* marfil cálido para texto */
+  --ink-soft:   #C7C2B0;   /* marfil atenuado */
+  --ink-mute:   #7E8298;   /* gris frío para metadatos */
+  --rule:       #2F3D6E;   /* línea cobalto sobre midnight */
+  --rule-soft:  #1F2A55;
 
-  /* Cobalto profundo — color institucional principal */
-  --brand:        #1D2A57;
-  --brand-soft:   #243169;   /* hover */
-  --brand-deep:   #131B3C;   /* contraste fuerte */
-  --brand-tint:   #E5E4EE;   /* halo para badges informativos */
+  /* Cobalto eléctrico — brand activo */
+  --brand:        #5B79FF;   /* cobalto vivo, visible sobre midnight */
+  --brand-soft:   #7991FF;   /* hover */
+  --brand-deep:   #3650DE;
+  --brand-tint:   rgba(91, 121, 255, 0.16);  /* halo para hover sutil */
 
-  /* Dorado antiguo — acento editorial (italicas, medallas, hover de iconos) */
-  --accent:       #C9A961;
-  --accent-soft:  #F4EFD9;
-  --accent-deep:  #8C7233;
+  /* Dorado saturado — italicas, medallas */
+  --accent:       #E5B454;
+  --accent-soft:  rgba(229, 180, 84, 0.14);
+  --accent-deep:  #F5C97A;
 
-  /* Status */
-  --ok:        #15803D;
-  --ok-bg:     #ECF6EE;
-  --warn:      #B45309;
-  --warn-bg:   #F8EED5;
-  --bad:       #B91C1C;
-  --bad-bg:    #F8E6E2;
+  /* Status — versiones luminosas para dark */
+  --ok:        #4ADE80;
+  --ok-bg:     rgba(74, 222, 128, 0.10);
+  --warn:      #FBD05B;
+  --warn-bg:   rgba(251, 208, 91, 0.10);
+  --bad:       #F87171;
+  --bad-bg:    rgba(248, 113, 113, 0.10);
 
   /* Slots */
-  --slot-free:        #15803D;
-  --slot-free-bg:     #ECF6EE;
-  --slot-occupied:    #B91C1C;
-  --slot-occupied-bg: #F8E6E2;
-  --slot-past:        #9CA3AF;
-  --slot-past-bg:     #EFEBDC;
+  --slot-free:        #4ADE80;
+  --slot-free-bg:     rgba(74, 222, 128, 0.08);
+  --slot-occupied:    #F87171;
+  --slot-occupied-bg: rgba(248, 113, 113, 0.08);
+  --slot-past:        #5A6276;
+  --slot-past-bg:     rgba(255, 255, 255, 0.03);
 
-  /* Seed banner (legacy — no se renderiza pero las vars existen) */
-  --seed-bg:     #F4EFD9;
-  --seed-text:   #8C7233;
-  --seed-border: #C9A961;
+  /* Seed banner (legacy — no se renderiza) */
+  --seed-bg:     rgba(229, 180, 84, 0.12);
+  --seed-text:   #E5B454;
+  --seed-border: #E5B454;
 }
 
 * {
@@ -71,7 +71,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-image:
-    radial-gradient(circle at 1px 1px, rgba(29, 42, 87, 0.045) 1px, transparent 0);
+    radial-gradient(circle at 1px 1px, rgba(244, 236, 216, 0.04) 1px, transparent 0);
   background-size: 28px 28px;
   background-position: -14px -14px;
 }
@@ -112,7 +112,7 @@ body {
 .field {
   width: 100%;
   padding: 0.625rem 0.875rem;
-  background: var(--surface);
+  background: var(--paper-soft);
   border: 1px solid var(--rule);
   border-radius: 0;
   border-bottom-width: 1.5px;
@@ -125,21 +125,29 @@ body {
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 1px 0 var(--brand);
+  background: var(--surface);
 }
 
 .field::placeholder {
   color: var(--ink-mute);
 }
 
+/* Inputs nativos heredan el color para fechas/selects */
+select.field,
+input[type='date'].field,
+input[type='number'].field {
+  color-scheme: dark;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(20, 24, 29, 0.18);
+  background: rgba(244, 236, 216, 0.18);
   border-radius: 8px;
   border: 2px solid var(--paper);
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(20, 24, 29, 0.36); }
+::-webkit-scrollbar-thumb:hover { background: rgba(244, 236, 216, 0.32); }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {

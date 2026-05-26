@@ -27,7 +27,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     ) : null}
     {action ? (
       <div className="mt-6">
-        <Button variant="ink" onClick={action.onClick}>
+        <Button variant="primary" onClick={action.onClick}>
           {action.label}
         </Button>
       </div>

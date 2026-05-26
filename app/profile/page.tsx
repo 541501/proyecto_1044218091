@@ -171,7 +171,7 @@ function ProfileContent() {
               </div>
 
               <div className="pt-4 border-t border-rule flex justify-end">
-                <Button type="submit" variant="ink" isLoading={loading}>
+                <Button type="submit" variant="primary" isLoading={loading}>
                   <IconKey size={14} />
                   Actualizar contraseña
                 </Button>
