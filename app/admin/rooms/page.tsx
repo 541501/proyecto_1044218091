@@ -211,7 +211,7 @@ function AdminRoomsContent() {
                       <div className="inline-flex items-center gap-1">
                         <button
                           onClick={() => router.push(`/admin/rooms/${room.id}/edit`)}
-                          className="p-1.5 text-ink-mute hover:text-brand hover:bg-brand-tint transition-colors"
+                          className="p-1.5 text-ink-mute hover:text-accent hover:bg-accent-soft transition-colors"
                           title="Editar"
                         >
                           <IconPencil size={16} />

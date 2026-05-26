@@ -12,8 +12,8 @@ const variants: Record<Variant, string> = {
   success: 'text-ok border-ok/40 bg-ok-bg',
   danger: 'text-bad border-bad/40 bg-bad-bg',
   warning: 'text-warn border-warn/40 bg-warn-bg',
-  info: 'text-brand border-brand/40 bg-brand-tint',
-  brand: 'text-paper border-brand bg-brand',
+  info: 'text-ink border-ink/25 bg-paper-soft',
+  brand: 'text-paper border-ink bg-ink',
   accent: 'text-accent border-accent/40 bg-accent-soft',
 };
 
