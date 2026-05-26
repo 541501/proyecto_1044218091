@@ -1,43 +1,26 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardTitle, CardContent } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { useState, useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function MyReservationsPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    (async () => {
-      const res = await fetch('/api/auth/me');
-      if (!res.ok) router.push('/login');
-      else setUser((await res.json()).user);
-    })();
-  }, [router]);
-
-  if (!user) return <div className="text-center py-20">Cargando...</div>;
-
+export default function MyReservationsRedirect() {
   return (
-    <AppLayout role={user.role} userName={user.email}>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Mis Reservas</h1>
-        </div>
+    <Suspense fallback={null}>
+      <Inner />
+    </Suspense>
+  );
+}
 
-        <Card>
-          <CardTitle>Tus reservas</CardTitle>
-          <CardContent className="mt-4">
-            <EmptyState
-              title="Sin reservas"
-              description="No tienes ninguna reserva registrada."
-              icon="📋"
-            />
-          </CardContent>
-        </Card>
-      </div>
-    </AppLayout>
+function Inner() {
+  const router = useRouter();
+  const sp = useSearchParams();
+  useEffect(() => {
+    const qs = sp.toString();
+    router.replace(`/reservations${qs ? '?' + qs : ''}`);
+  }, [router, sp]);
+  return (
+    <div className="min-h-screen flex items-center justify-center text-ink-mute font-mono text-sm uppercase tracking-wide">
+      Redirigiendo…
+    </div>
   );
 }

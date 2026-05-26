@@ -1,15 +1,15 @@
 'use client';
 
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Suspense, useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/Toast';
+import { IconDot, IconAlert, IconKey, IconUser } from '@/components/icons';
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Cargando…</div>}>
+    <Suspense fallback={<div className="p-8 text-ink-mute font-mono text-sm uppercase">Cargando…</div>}>
       <ProfileContent />
     </Suspense>
   );
@@ -24,182 +24,189 @@ function ProfileContent() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const mustChangePassword = searchParams.get('action') === 'change-password';
+  const mustChange = searchParams.get('action') === 'change-password';
 
   useEffect(() => {
     (async () => {
       const res = await fetch('/api/auth/me');
-      if (!res.ok) router.push('/login');
-      else {
-        const data = await res.json();
-        setUser(data.user);
-        
-        // If must_change_password but no current password field shown, inform user
-        if (data.user.must_change_password) {
-          addToast('Debes cambiar tu contraseña antes de acceder al sistema', 'warning');
-        }
+      if (!res.ok) return router.push('/login');
+      const data = await res.json();
+      setUser(data.user);
+      if (data.user.must_change_password) {
+        addToast('Debes cambiar tu contraseña antes de continuar', 'warning');
       }
     })();
   }, [router, addToast]);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (mustChangePassword && !currentPassword) {
-      // For initial password change, no need for current password
-      if (newPassword !== confirmPassword) {
-        addToast('Las contraseñas no coinciden', 'error');
-        return;
+    if (newPassword !== confirmPassword) {
+      return addToast('Las contraseñas no coinciden', 'error');
+    }
+    setLoading(true);
+    try {
+      const body: any = { newPassword };
+      if (!mustChange) body.currentPassword = currentPassword;
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        addToast(err.error || 'Error al cambiar contraseña', 'error');
+      } else {
+        addToast('Contraseña actualizada con éxito', 'success');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        if (mustChange) setTimeout(() => router.push('/login'), 1500);
       }
-
-      setLoading(true);
-      try {
-        const res = await fetch('/api/auth/change-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ newPassword }),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          addToast(err.error || 'Error al cambiar contraseña', 'error');
-        } else {
-          addToast('Contraseña actualizada exitosamente. Por favor inicia sesión nuevamente.', 'success');
-          // Redirect to login to get new JWT without must_change_password flag
-          setTimeout(() => router.push('/login'), 2000);
-        }
-      } catch (err) {
-        console.error('Error:', err);
-        addToast('Error al cambiar contraseña', 'error');
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // Regular password change (requires current password)
-      if (newPassword !== confirmPassword) {
-        addToast('Las contraseñas no coinciden', 'error');
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const res = await fetch('/api/auth/change-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ currentPassword, newPassword }),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          addToast(err.error || 'Error al cambiar contraseña', 'error');
-        } else {
-          addToast('Contraseña actualizada exitosamente', 'success');
-          setCurrentPassword('');
-          setNewPassword('');
-          setConfirmPassword('');
-        }
-      } catch (err) {
-        console.error('Error:', err);
-        addToast('Error al cambiar contraseña', 'error');
-      } finally {
-        setLoading(false);
-      }
+    } catch {
+      addToast('Error al cambiar contraseña', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!user) return <div className="text-center py-20">Cargando...</div>;
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-ink-mute font-mono text-sm uppercase tracking-wide">
+        Cargando perfil…
+      </div>
+    );
+  }
 
   return (
-    <AppLayout role={user.role} userName={user.email}>
-      <div className="max-w-md mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Perfil</h1>
-          <p className="text-slate-600">Administra tu información personal y contraseña</p>
-        </div>
+    <AppLayout role={user.role} userName={user.name || user.email}>
+      <div className="max-w-3xl mx-auto">
+        <header className="mb-10 animate-rise">
+          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-ink-mute mb-3">
+            <IconDot size={6} className="text-accent" />
+            <span>Tu cuenta</span>
+          </div>
+          <h1 className="font-display text-5xl md:text-6xl leading-[0.95] text-ink">
+            Perfil
+            <span className="italic text-accent"> personal</span>
+          </h1>
+        </header>
 
-        {mustChangePassword && (
-          <div className="bg-orange-50 border border-orange-300 rounded-lg p-4 flex gap-3">
-            <div className="flex-shrink-0 text-orange-600 text-lg">⚠️</div>
-            <div>
-              <p className="font-semibold text-orange-900">Cambio de contraseña obligatorio</p>
-              <p className="text-sm text-orange-800 mt-1">Debes cambiar tu contraseña antes de poder acceder al sistema.</p>
+        {mustChange ? (
+          <div className="mb-8 flex items-start gap-3 px-5 py-4 border-l-4 border-accent bg-accent-soft text-warn">
+            <IconAlert size={18} className="mt-0.5 flex-shrink-0" />
+            <div className="text-sm">
+              <strong className="font-semibold text-ink">Cambio obligatorio.</strong>{' '}
+              Debes definir una nueva contraseña antes de continuar usando el sistema.
             </div>
           </div>
-        )}
+        ) : null}
 
-        <Card>
-          <CardTitle>Información Personal</CardTitle>
-          <CardContent className="mt-4 space-y-3">
-            <div>
-              <label className="text-sm text-slate-600">Nombre</label>
-              <p className="font-medium text-slate-900">{user.name || 'No especificado'}</p>
-            </div>
-            <div>
-              <label className="text-sm text-slate-600">Email</label>
-              <p className="font-medium text-slate-900">{user.email}</p>
-            </div>
-            <div>
-              <label className="text-sm text-slate-600">Rol</label>
-              <p className="font-medium text-slate-900 capitalize">{user.role}</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Identity */}
+        <section className="mb-10">
+          <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-3 inline-flex items-center gap-2">
+            <IconUser size={14} />
+            Identidad
+          </div>
+          <div className="grid sm:grid-cols-3 gap-px bg-rule border border-rule">
+            <Field label="Nombre" value={user.name || '—'} />
+            <Field label="Correo" value={user.email} mono />
+            <Field label="Rol" value={user.role} capitalize />
+          </div>
+        </section>
 
-        <Card>
-          <CardTitle>{mustChangePassword ? 'Establecer Nueva Contraseña' : 'Cambiar Contraseña'}</CardTitle>
-          <CardContent className="mt-4">
-            <form onSubmit={handleChangePassword} className="space-y-4">
-              {!mustChangePassword && (
+        {/* Change password */}
+        <section>
+          <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-3 inline-flex items-center gap-2">
+            <IconKey size={14} />
+            Seguridad
+          </div>
+          <div className="border border-rule bg-surface p-6">
+            <h2 className="font-display text-2xl text-ink leading-tight mb-1">
+              {mustChange ? 'Establece tu nueva contraseña' : 'Cambiar contraseña'}
+            </h2>
+            <p className="text-sm text-ink-soft">
+              Usa una combinación segura: mínimo 8 caracteres con mayúsculas, minúsculas y números.
+            </p>
+
+            <form onSubmit={handleChangePassword} className="mt-6 space-y-5">
+              {!mustChange ? (
                 <div>
-                  <label className="block text-sm font-medium text-slate-900 mb-1">
-                    Contraseña Actual
+                  <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                    Contraseña actual
                   </label>
                   <input
                     type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="field"
                     required
                   />
                 </div>
-              )}
+              ) : null}
 
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-1">
-                  Nueva Contraseña
+                <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                  Nueva contraseña
                 </label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="field"
                   required
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  Mínimo 8 caracteres, incluye mayúscula, minúscula y números
-                </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-900 mb-1">
-                  Confirmar Nueva Contraseña
+                <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                  Confirmar nueva contraseña
                 </label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="field"
                   required
                 />
               </div>
 
-              <Button type="submit" variant="primary" isLoading={loading} disabled={loading} className="w-full">
-                Actualizar Contraseña
-              </Button>
+              <div className="pt-4 border-t border-rule flex justify-end">
+                <Button type="submit" variant="ink" isLoading={loading}>
+                  <IconKey size={14} />
+                  Actualizar contraseña
+                </Button>
+              </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
     </AppLayout>
+  );
+}
+
+function Field({
+  label,
+  value,
+  mono,
+  capitalize,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  capitalize?: boolean;
+}) {
+  return (
+    <div className="bg-surface px-5 py-4">
+      <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">{label}</div>
+      <div
+        className={[
+          'mt-1 text-ink',
+          mono ? 'font-mono text-[14px]' : 'font-display text-xl',
+          capitalize ? 'capitalize' : '',
+        ].join(' ')}
+      >
+        {value}
+      </div>
+    </div>
   );
 }

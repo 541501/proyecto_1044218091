@@ -1,15 +1,22 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/Button';
-import { ChevronLeft } from 'lucide-react';
+import {
+  IconChevronLeft,
+  IconAlert,
+  IconCheck,
+  IconDot,
+  IconCalendarPlus,
+} from '@/components/icons';
 
 export default function NewReservationPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Cargando…</div>}>
+    <Suspense
+      fallback={<div className="p-8 text-ink-mute font-mono text-sm uppercase">Cargando…</div>}
+    >
       <NewReservationContent />
     </Suspense>
   );
@@ -21,7 +28,7 @@ function NewReservationContent() {
 
   const [room, setRoom] = useState<any>(null);
   const [slot, setSlot] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState(searchParams.get('date') || '');
+  const [selectedDate] = useState(searchParams.get('date') || '');
 
   const [subject, setSubject] = useState('');
   const [groupName, setGroupName] = useState('');
@@ -40,55 +47,38 @@ function NewReservationContent() {
   const slotId = searchParams.get('slotId');
 
   useEffect(() => {
-    const loadData = async () => {
+    (async () => {
       try {
-        // Get user info
         const meRes = await fetch('/api/auth/me');
-        if (meRes.ok) {
-          const userData = await meRes.json();
-          setUser(userData.user);
-        }
-
-        // If roomId is provided, fetch room details
+        if (meRes.ok) setUser((await meRes.json()).user ?? null);
         if (roomId) {
-          const roomRes = await fetch(`/api/rooms/${roomId}`);
-          if (roomRes.ok) {
-            const roomData = await roomRes.json();
-            setRoom(roomData);
-          }
+          const r = await fetch(`/api/rooms/${roomId}`);
+          if (r.ok) setRoom(await r.json());
         }
-
-        // If slotId is provided, fetch slot details
         if (slotId) {
-          const slotsRes = await fetch('/api/slots');
-          if (slotsRes.ok) {
-            const slots = await slotsRes.json();
-            const foundSlot = slots.find((s: any) => s.id === slotId);
-            if (foundSlot) {
-              setSlot(foundSlot);
-            }
+          const s = await fetch('/api/slots');
+          if (s.ok) {
+            const slots = await s.json();
+            setSlot(slots.find((x: any) => x.id === slotId) ?? null);
           }
         }
-      } catch (err) {
-        console.error('Error loading data:', err);
-      }
-    };
-
-    loadData();
+      } catch {}
+    })();
   }, [roomId, slotId]);
+
+  const isDateInvalid = (() => {
+    if (!selectedDate) return false;
+    const selected = new Date(selectedDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    selected.setHours(0, 0, 0, 0);
+    return selected <= today;
+  })();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!roomId || !slotId || !selectedDate) {
-      setError('Faltan datos de la reserva');
-      return;
-    }
-
-    if (!subject.trim() || !groupName.trim()) {
-      setError('Debes completar todos los campos');
-      return;
-    }
+    if (!roomId || !slotId || !selectedDate) return setError('Faltan datos de la reserva');
+    if (!subject.trim() || !groupName.trim()) return setError('Completa todos los campos');
 
     setLoading(true);
     setError('');
@@ -103,233 +93,201 @@ function NewReservationContent() {
           slot_id: slotId,
           reservation_date: selectedDate,
           subject: subject.trim(),
-          group_name: groupName.trim()
-        })
+          group_name: groupName.trim(),
+        }),
       });
 
       if (res.status === 201) {
-        // Success - navigate to reservations page
-        router.push('/reservations?success=true');
+        router.push('/reservations/my?success=true');
       } else if (res.status === 409) {
-        // Conflict
         const data = await res.json();
-        const conflict = data.conflict;
-        if (conflict) {
-          setConflictError({
-            roomCode: conflict.roomCode,
-            slotName: conflict.slotName,
-            date: conflict.date,
-            professorName: conflict.professorName,
-            subject: conflict.subject
-          });
+        if (data.conflict) {
+          setConflictError(data.conflict);
         } else {
-          // Otro tipo de conflicto (reglas de negocio)
           setError(data.error || 'Conflicto de reserva');
         }
-      } else if (res.status === 400) {
-        const data = await res.json();
-        setError(data.error || 'Error en los datos de la reserva');
-      } else if (res.status === 401) {
-        setError('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
       } else {
-        setError('Error al crear la reserva');
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'Error al crear la reserva');
       }
-    } catch (err) {
-      console.error('Error:', err);
-      setError('Error al procesar la solicitud');
+    } catch {
+      setError('Error de red al procesar la solicitud');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBack = () => {
-    router.back();
-  };
-
-  // Check if date is today or past
-  const isDateInvalid = () => {
-    if (!selectedDate) return false;
-    const selected = new Date(selectedDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    selected.setHours(0, 0, 0, 0);
-    return selected <= today;
-  };
-
-  const dateInvalid = isDateInvalid();
+  const dateLabel = selectedDate
+    ? new Date(selectedDate).toLocaleDateString('es-CO', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : '—';
 
   return (
     <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
-      <div className="max-w-2xl mx-auto py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
-          >
-            <ChevronLeft size={20} />
-            Volver
-          </button>
-          
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Nueva Reserva</h1>
-          <p className="text-slate-600">Completa el formulario para reservar un salón</p>
-        </div>
+      <div className="max-w-3xl mx-auto">
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-ink-soft hover:text-ink transition-colors mb-8"
+        >
+          <IconChevronLeft size={14} />
+          Volver
+        </button>
 
-        {/* Error */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-300 rounded-lg text-red-900">
-            {error}
+        <header className="mb-10 animate-rise">
+          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-ink-mute mb-3">
+            <IconDot size={6} className="text-accent" />
+            <span>Nueva reserva · Formulario</span>
           </div>
-        )}
+          <h1 className="font-display text-5xl md:text-6xl leading-[0.95] text-ink">
+            Confirma tu
+            <span className="italic text-accent"> clase</span>.
+          </h1>
+        </header>
 
-        {/* Conflict Error - Prominent Alert */}
-        {conflictError && (
-          <div className="mb-6 p-6 bg-red-50 border-l-4 border-red-500 rounded-lg">
-            <div className="flex gap-4">
-              <div className="flex-shrink-0 mt-0.5">
-                <svg className="h-6 w-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
+        {/* Conflict block */}
+        {conflictError ? (
+          <div className="mb-6 border border-bad bg-bad-bg/60 p-6 animate-rise">
+            <div className="flex items-start gap-3">
+              <IconAlert className="text-bad mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-red-900 mb-2">Salón no disponible</h3>
-                <div className="space-y-2 text-red-800">
-                  <div>
-                    <span className="font-semibold">Salón:</span> {conflictError.roomCode}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Franja:</span> {conflictError.slotName}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Fecha:</span> {new Date(conflictError.date).toLocaleDateString('es-CO')}
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-red-200">
-                    <div className="text-sm mb-2">
-                      <span className="font-semibold">Reservado por:</span> Prof. {conflictError.professorName}
-                    </div>
-                    <div className="text-sm">
-                      <span className="font-semibold">Materia:</span> {conflictError.subject}
-                    </div>
-                  </div>
+                <div className="font-mono text-[11px] uppercase tracking-wide text-bad">
+                  Conflicto · 409
+                </div>
+                <h3 className="font-display text-2xl text-bad mt-1">Salón ya reservado</h3>
+                <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                  <dt className="font-mono text-[10px] uppercase tracking-wide text-bad/70">Salón</dt>
+                  <dd className="font-medium text-ink">{conflictError.roomCode}</dd>
+                  <dt className="font-mono text-[10px] uppercase tracking-wide text-bad/70">Franja</dt>
+                  <dd className="font-medium text-ink">{conflictError.slotName}</dd>
+                  <dt className="font-mono text-[10px] uppercase tracking-wide text-bad/70">Fecha</dt>
+                  <dd className="font-medium text-ink">
+                    {new Date(conflictError.date).toLocaleDateString('es-CO')}
+                  </dd>
+                  <dt className="font-mono text-[10px] uppercase tracking-wide text-bad/70">Profesor</dt>
+                  <dd className="font-medium text-ink">{conflictError.professorName}</dd>
+                  <dt className="font-mono text-[10px] uppercase tracking-wide text-bad/70">Materia</dt>
+                  <dd className="font-medium text-ink">{conflictError.subject}</dd>
+                </dl>
+                <div className="mt-5 text-sm text-bad/90">
+                  Elige otra franja o un salón distinto para continuar.
                 </div>
               </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-red-200">
-              <p className="text-sm text-red-800">
-                Para reservar este salón, selecciona otra franja horaria o un salón diferente.
-              </p>
-              <Button
-                onClick={handleBack}
-                variant="secondary"
-                className="mt-3 border-red-300 text-red-700 hover:bg-red-100"
-              >
-                Volver a seleccionar
-              </Button>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Form */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 mb-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Room, Slot, Date Summary */}
-            {room && slot && selectedDate && (
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
-                <div>
-                  <div className="text-sm text-slate-600">Salón</div>
-                  <div className="text-lg font-semibold text-slate-900">{room.code}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-slate-600">Franja</div>
-                  <div className="text-lg font-semibold text-slate-900">
-                    {slot.name} ({slot.start_time} – {slot.end_time})
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-slate-600">Fecha</div>
-                  <div className="text-lg font-semibold text-slate-900">
-                    {new Date(selectedDate).toLocaleDateString('es-CO', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
+        {error ? (
+          <div className="mb-6 px-4 py-3 border-l-2 border-bad bg-bad-bg text-bad text-sm inline-flex items-center gap-2.5">
+            <IconAlert size={16} />
+            <span>{error}</span>
+          </div>
+        ) : null}
 
-            {/* Subject */}
+        <div className="grid lg:grid-cols-[1fr_320px] gap-8">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-7">
             <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">
-                Materia *
+              <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                01 · Materia
               </label>
               <input
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="Ej: Matemáticas I, Física II"
+                placeholder="Ej. Cálculo I"
                 maxLength={150}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="field text-lg"
               />
-              <div className="text-xs text-slate-500 mt-1">{subject.length}/150</div>
+              <div className="font-mono text-[10px] text-ink-mute mt-1.5 text-right">
+                {subject.length}/150
+              </div>
             </div>
 
-            {/* Group Name */}
             <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">
-                Grupo *
+              <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                02 · Grupo
               </label>
               <input
                 type="text"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                placeholder="Ej: 2024-1 Grupo A, Sección 02"
+                placeholder="Ej. 2026-1 Grupo A"
                 maxLength={50}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="field text-lg"
               />
-              <div className="text-xs text-slate-500 mt-1">{groupName.length}/50</div>
+              <div className="font-mono text-[10px] text-ink-mute mt-1.5 text-right">
+                {groupName.length}/50
+              </div>
             </div>
 
-            {/* Date Validation Warning */}
-            {dateInvalid && (
-              <div className="p-4 bg-red-50 border border-red-300 rounded-lg text-red-900 text-sm">
-                ⚠️ No se pueden reservar franjas del día actual o del pasado
+            {isDateInvalid ? (
+              <div className="px-4 py-3 border-l-2 border-warn bg-warn-bg text-warn text-sm inline-flex items-center gap-2.5">
+                <IconAlert size={16} />
+                <span>No se pueden reservar franjas del día actual o pasadas.</span>
               </div>
-            )}
+            ) : null}
 
-            {/* Submit Button */}
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleBack}
-                className="flex-1"
-              >
+            <div className="flex flex-wrap gap-3 pt-4 border-t border-rule">
+              <Button type="button" variant="ghost" onClick={() => router.back()}>
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                disabled={loading || dateInvalid || !subject.trim() || !groupName.trim()}
-                className="flex-1"
+                variant="ink"
+                isLoading={loading}
+                disabled={loading || isDateInvalid || !subject.trim() || !groupName.trim()}
               >
-                {loading ? 'Creando...' : 'Confirmar Reserva'}
+                <IconCheck size={14} />
+                Confirmar reserva
               </Button>
             </div>
           </form>
-        </div>
 
-        {/* Info */}
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-          <div className="text-sm text-slate-600">
-            <div className="font-semibold text-slate-900 mb-2">Información importante:</div>
-            <ul className="space-y-1 list-disc list-inside">
-              <li>La materia es el nombre de la asignatura</li>
-              <li>El grupo identifica la sección o cohort de estudiantes</li>
-              <li>Una vez confirmada, la reserva aparecerá en tu lista de reservas</li>
-              <li>Puedes cancelar cualquier reserva futura desde tu perfil</li>
-            </ul>
-          </div>
+          {/* Summary side */}
+          <aside className="border border-rule bg-surface p-5 self-start">
+            <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-3 inline-flex items-center gap-2">
+              <IconCalendarPlus size={14} />
+              <span>Resumen de la reserva</span>
+            </div>
+            <dl className="space-y-4">
+              <div>
+                <dt className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+                  Salón
+                </dt>
+                <dd className="font-display text-2xl text-ink mt-0.5">
+                  {room?.code ?? '—'}
+                </dd>
+                {room?.type ? (
+                  <dd className="text-xs text-ink-soft capitalize">{room.type}</dd>
+                ) : null}
+              </div>
+              <div className="rule" />
+              <div>
+                <dt className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+                  Franja
+                </dt>
+                <dd className="font-display text-xl text-ink mt-0.5">
+                  {slot?.name ?? '—'}
+                </dd>
+                {slot ? (
+                  <dd className="font-mono text-[11px] text-ink-soft">
+                    {slot.start_time}–{slot.end_time}
+                  </dd>
+                ) : null}
+              </div>
+              <div className="rule" />
+              <div>
+                <dt className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+                  Fecha
+                </dt>
+                <dd className="text-ink mt-0.5 capitalize">{dateLabel}</dd>
+              </div>
+            </dl>
+          </aside>
         </div>
       </div>
     </AppLayout>

@@ -1,42 +1,43 @@
-/**
- * components/calendar/WeeklyCalendar.tsx
- * Calendario semanal (desktop) e implementación acordeón (mobile)
- * Para desktop: grilla 5 columnas (lunes-viernes) × 6 filas (franjas)
- * Para mobile: lista de días con acordeón
- */
-
 'use client';
 
+import { useState, useEffect } from 'react';
 import { WeeklyCalendar as WeeklyCalendarType } from '@/lib/types';
-import { useState } from 'react';
 import SlotCell from './SlotCell';
 import WeekNavigator from './WeekNavigator';
+import { IconChevronDown, IconCheck } from '@/components/icons';
 
 interface Props {
   calendar: WeeklyCalendarType | null;
   loading?: boolean;
   onSlotClick?: (dayIndex: number, slotIndex: number) => void;
+  onWeekChange?: (weekStart: string) => void;
 }
 
-export default function WeeklyCalendar({ calendar, loading, onSlotClick }: Props) {
-  const [expandedDay, setExpandedDay] = useState<number | null>(null);
+export default function WeeklyCalendar({ calendar, loading, onSlotClick, onWeekChange }: Props) {
+  const [expandedDay, setExpandedDay] = useState<number | null>(0);
   const [currentWeekStart, setCurrentWeekStart] = useState<string>(calendar?.weekStart || '');
+
+  useEffect(() => {
+    if (calendar?.weekStart) setCurrentWeekStart(calendar.weekStart);
+  }, [calendar?.weekStart]);
+
+  const changeWeek = (newStart: string) => {
+    setCurrentWeekStart(newStart);
+    onWeekChange?.(newStart);
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin mb-4">⟳</div>
-          <div className="text-slate-600">Cargando calendario...</div>
-        </div>
+      <div className="border border-dashed border-rule py-20 text-center font-mono text-sm uppercase tracking-wide text-ink-mute">
+        Cargando calendario…
       </div>
     );
   }
 
   if (!calendar) {
     return (
-      <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
-        <div className="text-slate-600">No hay datos de calendario disponibles</div>
+      <div className="border border-dashed border-rule py-20 text-center font-mono text-sm uppercase tracking-wide text-ink-mute">
+        Sin datos de calendario
       </div>
     );
   }
@@ -44,13 +45,13 @@ export default function WeeklyCalendar({ calendar, loading, onSlotClick }: Props
   const handlePreviousWeek = () => {
     const date = new Date(currentWeekStart);
     date.setDate(date.getDate() - 7);
-    setCurrentWeekStart(date.toISOString().split('T')[0]);
+    changeWeek(date.toISOString().split('T')[0]);
   };
 
   const handleNextWeek = () => {
     const date = new Date(currentWeekStart);
     date.setDate(date.getDate() + 7);
-    setCurrentWeekStart(date.toISOString().split('T')[0]);
+    changeWeek(date.toISOString().split('T')[0]);
   };
 
   const handleToday = () => {
@@ -58,17 +59,13 @@ export default function WeeklyCalendar({ calendar, loading, onSlotClick }: Props
     const day = today.getDay();
     const diff = today.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(today.setDate(diff));
-    setCurrentWeekStart(monday.toISOString().split('T')[0]);
+    changeWeek(monday.toISOString().split('T')[0]);
   };
 
-  // Verificar si todas las franjas están libres
-  const allSlotsAvailable = calendar.days.every(day =>
-    day.slots.every(slot => slot.state === 'libre')
-  );
+  const allFree = calendar.days.every((day) => day.slots.every((s) => s.state === 'libre'));
 
-  // Desktop view: Grilla completa
-  const desktopView = (
-    <div className="hidden md:block">
+  return (
+    <div>
       <WeekNavigator
         weekStart={currentWeekStart}
         onPreviousWeek={handlePreviousWeek}
@@ -76,26 +73,39 @@ export default function WeeklyCalendar({ calendar, loading, onSlotClick }: Props
         onToday={handleToday}
       />
 
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-        {/* Encabezado con días */}
-        <div className="grid grid-cols-6 gap-1 bg-slate-100 p-2 border-b border-slate-200">
-          <div className="font-semibold text-slate-900 text-sm text-center p-2">Franja</div>
+      {allFree ? (
+        <div className="mb-5 px-4 py-3 border border-ok/30 bg-ok-bg/60 text-ok inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-wide">
+          <IconCheck size={14} />
+          Todas las franjas disponibles
+        </div>
+      ) : null}
+
+      {/* Desktop grid */}
+      <div className="hidden md:block border border-rule">
+        <div className="grid grid-cols-[120px_repeat(5,_1fr)] bg-paper-soft border-b border-rule">
+          <div className="px-3 py-3 font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+            Franja
+          </div>
           {calendar.days.map((day) => (
-            <div key={day.date} className="font-semibold text-slate-900 text-sm text-center p-2">
-              <div>{day.dayName}</div>
-              <div className="text-xs text-slate-600">{day.date}</div>
+            <div key={day.date} className="px-3 py-3 border-l border-rule">
+              <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+                {day.dayName}
+              </div>
+              <div className="font-display text-sm text-ink mt-0.5">{day.date}</div>
             </div>
           ))}
         </div>
 
-        {/* Grilla de franjas */}
         {calendar.days[0]?.slots.map((_, slotIndex) => (
-          <div key={slotIndex} className="grid grid-cols-6 gap-1 p-2 border-b border-slate-100 last:border-b-0">
-            <div className="font-semibold text-slate-900 text-xs text-center p-2">
+          <div
+            key={slotIndex}
+            className="grid grid-cols-[120px_repeat(5,_1fr)] border-b border-rule last:border-b-0"
+          >
+            <div className="px-3 py-3 bg-paper/60 flex items-center font-mono text-[11px] uppercase tracking-wide text-ink-soft border-r border-rule">
               {calendar.days[0].slots[slotIndex]?.slotName}
             </div>
             {calendar.days.map((day, dayIndex) => (
-              <div key={`${day.date}-${slotIndex}`}>
+              <div key={`${day.date}-${slotIndex}`} className="border-l border-rule">
                 <SlotCell
                   slot={day.slots[slotIndex]}
                   onClick={() => onSlotClick?.(dayIndex, slotIndex)}
@@ -105,63 +115,44 @@ export default function WeeklyCalendar({ calendar, loading, onSlotClick }: Props
           </div>
         ))}
       </div>
-    </div>
-  );
 
-  // Mobile view: Acordeón
-  const mobileView = (
-    <div className="md:hidden space-y-2">
-      <WeekNavigator
-        weekStart={currentWeekStart}
-        onPreviousWeek={handlePreviousWeek}
-        onNextWeek={handleNextWeek}
-        onToday={handleToday}
-      />
+      {/* Mobile accordion */}
+      <div className="md:hidden space-y-3">
+        {calendar.days.map((day, dayIndex) => (
+          <div key={day.date} className="border border-rule bg-surface">
+            <button
+              onClick={() => setExpandedDay(expandedDay === dayIndex ? null : dayIndex)}
+              className="w-full px-4 py-3 flex items-center justify-between"
+            >
+              <div className="text-left">
+                <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+                  {day.dayName}
+                </div>
+                <div className="font-display text-lg text-ink">{day.date}</div>
+              </div>
+              <IconChevronDown
+                size={18}
+                className={[
+                  'transition-transform text-ink-soft',
+                  expandedDay === dayIndex ? 'rotate-180' : '',
+                ].join(' ')}
+              />
+            </button>
 
-      {calendar.days.map((day, dayIndex) => (
-        <div key={day.date} className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-          {/* Header del acordeón */}
-          <button
-            onClick={() => setExpandedDay(expandedDay === dayIndex ? null : dayIndex)}
-            className="w-full p-4 flex items-center justify-between hover:bg-slate-50"
-          >
-            <div className="text-left">
-              <div className="font-semibold text-slate-900">{day.dayName}</div>
-              <div className="text-xs text-slate-600">{day.date}</div>
-            </div>
-            <div className={`transition-transform ${expandedDay === dayIndex ? 'rotate-180' : ''}`}>
-              ▼
-            </div>
-          </button>
-
-          {/* Contenido del acordeón */}
-          {expandedDay === dayIndex && (
-            <div className="border-t border-slate-200 p-4 space-y-3">
-              {day.slots.map((slot, slotIndex) => (
-                <div key={`${day.date}-${slotIndex}`}>
+            {expandedDay === dayIndex ? (
+              <div className="border-t border-rule grid grid-cols-2 gap-px bg-rule">
+                {day.slots.map((slot, slotIndex) => (
                   <SlotCell
+                    key={`${day.date}-${slotIndex}`}
                     slot={slot}
                     onClick={() => onSlotClick?.(dayIndex, slotIndex)}
-                    showDetails
                   />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
     </div>
-  );
-
-  return (
-    <>
-      {allSlotsAvailable && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-300 rounded-lg text-green-900 text-center">
-          ✓ Todas las franjas disponibles para esta semana.
-        </div>
-      )}
-      {desktopView}
-      {mobileView}
-    </>
   );
 }

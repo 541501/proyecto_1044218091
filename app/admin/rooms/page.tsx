@@ -1,241 +1,230 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Room, Block } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
-import { Trash2, Edit, Plus } from 'lucide-react';
-import { useState as useStateHook } from 'react';
+import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
+import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  IconPlus,
+  IconPencil,
+  IconTrash,
+  IconAlert,
+  IconCheck,
+  IconDot,
+} from '@/components/icons';
 
 interface RoomWithBlockInfo extends Room {
   blockName?: string;
 }
 
+const TYPE_LABEL: Record<string, string> = {
+  salon: 'Salón',
+  laboratorio: 'Laboratorio',
+  auditorio: 'Auditorio',
+  sala_computo: 'Sala de cómputo',
+  otro: 'Otro',
+};
+
 export default function AdminRoomsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-ink-mute font-mono text-sm uppercase">Cargando…</div>}>
+      <AdminRoomsContent />
+    </Suspense>
+  );
+}
+
+function AdminRoomsContent() {
   const router = useRouter();
-  
+  const searchParams = useSearchParams();
+
   const [rooms, setRooms] = useState<RoomWithBlockInfo[]>([]);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [toast, setToast] = useState<{ kind: 'ok' | 'warn'; text: string } | null>(null);
+
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [deactivateWarning, setDeactivateWarning] = useState<number | null>(null);
 
   useEffect(() => {
-    const loadData = async () => {
+    (async () => {
       try {
-        setLoading(true);
-
-        // Get user info and verify admin role
-        const meRes = await fetch('/api/auth/me');
-        if (!meRes.ok) {
-          router.push('/login');
-          return;
-        }
-        const userData = await meRes.json();
-        if (userData.user.role !== 'admin') {
-          router.push('/');
-          return;
-        }
-        setUser(userData.user);
-
-        // Get blocks
-        const blocksRes = await fetch('/api/blocks');
-        if (blocksRes.ok) {
-          const blocksData = await blocksRes.json();
-          setBlocks(blocksData);
-        }
-
-        // Get all rooms
-        const roomsRes = await fetch('/api/rooms');
-        if (roomsRes.ok) {
-          const roomsData = await roomsRes.json();
-          setRooms(roomsData);
-        }
-      } catch (error) {
-        console.error('Error loading admin page:', error);
+        const me = await fetch('/api/auth/me');
+        if (!me.ok) return router.replace('/login');
+        const userData = (await me.json()).user;
+        if (userData?.role !== 'admin') return router.replace('/dashboard');
+        setUser(userData);
+        const [bRes, rRes] = await Promise.all([fetch('/api/blocks'), fetch('/api/rooms')]);
+        if (bRes.ok) setBlocks(await bRes.json());
+        if (rRes.ok) setRooms(await rRes.json());
       } finally {
         setLoading(false);
       }
-    };
-
-    loadData();
+    })();
   }, [router]);
 
-  const handleCreateRoom = () => {
-    router.push('/admin/rooms/new');
-  };
-
-  const handleEditRoom = (roomId: string) => {
-    router.push(`/admin/rooms/${roomId}/edit`);
-  };
+  useEffect(() => {
+    if (searchParams.get('created')) setToast({ kind: 'ok', text: 'Salón creado correctamente.' });
+    else if (searchParams.get('updated')) setToast({ kind: 'ok', text: 'Salón actualizado.' });
+    if (toast) setTimeout(() => setToast(null), 3500);
+  }, [searchParams]); // eslint-disable-line
 
   const handleDeactivateClick = async (room: Room) => {
     setSelectedRoom(room);
-    
+    setDeactivateWarning(null);
+    setShowDeactivateModal(true);
     try {
-      const res = await fetch(`/api/rooms/${room.id}/deactivate`, {
-        method: 'POST'
-      });
-      
+      const res = await fetch(`/api/rooms/${room.id}/deactivate`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
-        setDeactivateWarning(data.warningCount);
-        setShowDeactivateModal(true);
+        setDeactivateWarning(data.warningCount ?? 0);
       }
-    } catch (error) {
-      console.error('Error checking deactivate:', error);
-    }
+    } catch {}
   };
 
   const handleConfirmDeactivate = async () => {
     if (!selectedRoom) return;
-
     try {
       const res = await fetch(`/api/rooms/${selectedRoom.id}/deactivate?confirm=true`, {
-        method: 'POST'
+        method: 'POST',
       });
-      
       if (res.ok) {
-        // Actualizar lista de salones
-        setRooms(rooms.map(r => r.id === selectedRoom.id ? { ...r, is_active: false } : r));
+        setRooms((prev) => prev.map((r) => (r.id === selectedRoom.id ? { ...r, is_active: false } : r)));
         setShowDeactivateModal(false);
         setSelectedRoom(null);
         setDeactivateWarning(null);
+        setToast({ kind: 'warn', text: 'Salón desactivado.' });
+        setTimeout(() => setToast(null), 3500);
       }
-    } catch (error) {
-      console.error('Error deactivating room:', error);
-    }
+    } catch {}
   };
 
-  const filteredRooms = selectedBlock
-    ? rooms.filter(r => r.block_id === selectedBlock)
-    : rooms;
-
-  const getRoomTypeLabel = (type: string): string => {
-    const labels: Record<string, string> = {
-      'salon': 'Salón',
-      'laboratorio': 'Laboratorio',
-      'auditorio': 'Auditorio',
-      'sala_computo': 'Sala de Cómputo',
-      'otro': 'Otro'
-    };
-    return labels[type] || type;
-  };
-
-  if (!user || user.role !== 'admin') {
-    return (
-      <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
-        <div className="text-center py-12">
-          <div className="text-red-600">Acceso denegado. Solo administradores.</div>
-        </div>
-      </AppLayout>
-    );
-  }
+  const filtered = selectedBlock ? rooms.filter((r) => r.block_id === selectedBlock) : rooms;
 
   return (
-    <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
+    <AppLayout role={user?.role || 'admin'} userName={user?.name}>
       <div className="max-w-6xl mx-auto">
-        {/* Encabezado */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Gestión de Salones</h1>
-            <p className="text-slate-600">Administra los salones de los bloques académicos</p>
+        <header className="mb-10 animate-rise">
+          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-ink-mute mb-3">
+            <IconDot size={6} className="text-accent" />
+            <span>Inventario · Administración</span>
           </div>
-          <Button onClick={handleCreateRoom} className="flex items-center gap-2">
-            <Plus size={18} />
-            Nuevo Salón
-          </Button>
-        </div>
+          <div className="flex items-end justify-between flex-wrap gap-4">
+            <h1 className="font-display text-5xl md:text-6xl leading-[0.95] text-ink">
+              Salones
+              <span className="italic text-accent"> académicos</span>
+            </h1>
+            <Button variant="ink" onClick={() => router.push('/admin/rooms/new')}>
+              <IconPlus size={14} />
+              Nuevo salón
+            </Button>
+          </div>
+        </header>
 
-        {/* Filtro por bloque */}
-        <div className="mb-6 flex gap-2 flex-wrap">
+        {toast ? (
+          <div
+            className={[
+              'mb-6 px-4 py-3 border-l-2 text-sm inline-flex items-center gap-2.5',
+              toast.kind === 'ok' ? 'border-ok bg-ok-bg/60 text-ok' : 'border-warn bg-warn-bg/60 text-warn',
+            ].join(' ')}
+          >
+            <IconCheck size={16} />
+            {toast.text}
+          </div>
+        ) : null}
+
+        {/* Block filter */}
+        <div className="border-y border-rule py-3 mb-6 flex flex-wrap gap-1">
           <button
             onClick={() => setSelectedBlock(null)}
-            className={`px-4 py-2 rounded-lg border transition-all ${
-              selectedBlock === null
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-slate-900 border-slate-200'
-            }`}
+            className={[
+              'px-3 py-2 border text-sm transition-colors',
+              !selectedBlock ? 'bg-ink text-paper border-ink' : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
+            ].join(' ')}
           >
-            Todos los bloques
+            <span className="font-mono text-[11px] uppercase tracking-wide">Todos</span>
           </button>
-          {blocks.map(block => (
-            <button
-              key={block.id}
-              onClick={() => setSelectedBlock(block.id)}
-              className={`px-4 py-2 rounded-lg border transition-all ${
-                selectedBlock === block.id
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-slate-900 border-slate-200'
-              }`}
-            >
-              Bloque {block.code}
-            </button>
-          ))}
+          {blocks.map((b) => {
+            const active = selectedBlock === b.id;
+            return (
+              <button
+                key={b.id}
+                onClick={() => setSelectedBlock(b.id)}
+                className={[
+                  'px-3 py-2 border text-sm transition-colors',
+                  active ? 'bg-ink text-paper border-ink' : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
+                ].join(' ')}
+              >
+                <span className="font-mono text-[11px] uppercase tracking-wide">
+                  Bloque {b.code}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Tabla de salones */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="text-slate-600">Cargando salones...</div>
+          <div className="text-center py-12 font-mono text-sm uppercase tracking-wide text-ink-mute">
+            Cargando salones…
           </div>
-        ) : filteredRooms.length === 0 ? (
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
-            <div className="text-slate-600">No hay salones para mostrar</div>
-          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            eyebrow="Sin salones"
+            title="No hay salones en este filtro"
+            description="Crea el primer salón para que aparezca disponible para los docentes."
+            action={{ label: 'Crear salón', onClick: () => router.push('/admin/rooms/new') }}
+          />
         ) : (
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-slate-100 border-b border-slate-200">
-                <tr>
-                  <th className="text-left px-6 py-3 font-semibold text-slate-900">Código</th>
-                  <th className="text-left px-6 py-3 font-semibold text-slate-900">Tipo</th>
-                  <th className="text-left px-6 py-3 font-semibold text-slate-900">Capacidad</th>
-                  <th className="text-left px-6 py-3 font-semibold text-slate-900">Equipamiento</th>
-                  <th className="text-left px-6 py-3 font-semibold text-slate-900">Estado</th>
-                  <th className="text-right px-6 py-3 font-semibold text-slate-900">Acciones</th>
+          <div className="border border-rule bg-surface overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-paper-soft border-b border-rule">
+                <tr className="text-left text-ink-mute">
+                  <Th>Código</Th>
+                  <Th>Tipo</Th>
+                  <Th>Capacidad</Th>
+                  <Th>Equipamiento</Th>
+                  <Th>Estado</Th>
+                  <Th className="text-right">Acciones</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
-                {filteredRooms.map(room => (
-                  <tr key={room.id} className={room.is_active ? '' : 'bg-slate-50'}>
-                    <td className="px-6 py-3 font-semibold text-slate-900">{room.code}</td>
-                    <td className="px-6 py-3 text-slate-600">{getRoomTypeLabel(room.type)}</td>
-                    <td className="px-6 py-3 text-slate-600">{room.capacity} personas</td>
-                    <td className="px-6 py-3 text-slate-600 text-sm">
-                      {room.equipment ? room.equipment.substring(0, 30) + (room.equipment.length > 30 ? '...' : '') : '—'}
+              <tbody className="divide-y divide-rule">
+                {filtered.map((room) => (
+                  <tr key={room.id} className={room.is_active ? '' : 'bg-paper-soft/40 text-ink-mute'}>
+                    <td className="px-4 py-3 font-mono text-ink">{room.code}</td>
+                    <td className="px-4 py-3 text-ink-soft">{TYPE_LABEL[room.type] ?? room.type}</td>
+                    <td className="px-4 py-3 text-ink-soft font-mono">{room.capacity}</td>
+                    <td className="px-4 py-3 text-ink-soft text-xs max-w-xs truncate">
+                      {room.equipment || <span className="italic text-ink-mute">—</span>}
                     </td>
-                    <td className="px-6 py-3">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                        room.is_active
-                          ? 'bg-green-100 text-green-900'
-                          : 'bg-slate-200 text-slate-900'
-                      }`}>
+                    <td className="px-4 py-3">
+                      <Badge variant={room.is_active ? 'success' : 'default'}>
                         {room.is_active ? 'Activo' : 'Inactivo'}
-                      </span>
+                      </Badge>
                     </td>
-                    <td className="px-6 py-3 text-right">
-                      <div className="flex justify-end gap-2">
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex items-center gap-1">
                         <button
-                          onClick={() => handleEditRoom(room.id)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          onClick={() => router.push(`/admin/rooms/${room.id}/edit`)}
+                          className="p-1.5 text-ink-mute hover:text-brand hover:bg-brand-tint transition-colors"
                           title="Editar"
                         >
-                          <Edit size={18} />
+                          <IconPencil size={16} />
                         </button>
-                        {room.is_active && (
+                        {room.is_active ? (
                           <button
                             onClick={() => handleDeactivateClick(room)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            className="p-1.5 text-ink-mute hover:text-bad hover:bg-bad-bg transition-colors"
                             title="Desactivar"
                           >
-                            <Trash2 size={18} />
+                            <IconTrash size={16} />
                           </button>
-                        )}
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -244,46 +233,47 @@ export default function AdminRoomsPage() {
             </table>
           </div>
         )}
-      </div>
 
-      {/* Modal de confirmación de desactivación */}
-      {showDeactivateModal && selectedRoom && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Desactivar Salón</h3>
-            
-            {deactivateWarning && deactivateWarning > 0 ? (
-              <div>
-                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded text-amber-900 text-sm">
-                  ⚠️ Advertencia: Hay {deactivateWarning} reserva{deactivateWarning !== 1 ? 's' : ''} futuras confirmada{deactivateWarning !== 1 ? 's' : ''} en este salón.
-                </div>
-                <div className="text-slate-600 mb-6 text-sm">
-                  ¿Deseas desactivar este salón de todas formas?
-                </div>
-              </div>
-            ) : (
-              <div className="text-slate-600 mb-6">
-                ¿Deseas desactivar el salón <span className="font-semibold">{selectedRoom.code}</span>?
-              </div>
-            )}
-            
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="secondary"
-                onClick={() => setShowDeactivateModal(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleConfirmDeactivate}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Desactivar
-              </Button>
+        <Modal
+          isOpen={showDeactivateModal}
+          onClose={() => setShowDeactivateModal(false)}
+          title={selectedRoom ? `Desactivar ${selectedRoom.code}` : 'Desactivar salón'}
+          eyebrow="Acción irreversible"
+          actions={[
+            {
+              label: 'Desactivar',
+              variant: 'danger',
+              onClick: handleConfirmDeactivate,
+            },
+          ]}
+        >
+          {deactivateWarning !== null && deactivateWarning > 0 ? (
+            <div className="flex items-start gap-2.5 px-4 py-3 border-l-2 border-warn bg-warn-bg text-warn text-sm">
+              <IconAlert size={16} className="mt-0.5" />
+              <span>
+                Este salón tiene{' '}
+                <strong>{deactivateWarning}</strong>{' '}
+                {deactivateWarning === 1 ? 'reserva futura' : 'reservas futuras'} confirmadas. Si lo desactivas, dejará de aparecer en disponibilidad pero las reservas existentes se conservarán.
+              </span>
             </div>
-          </div>
-        </div>
-      )}
+          ) : (
+            <p>El salón quedará oculto en disponibilidad. Puedes reactivarlo desde la edición.</p>
+          )}
+        </Modal>
+      </div>
     </AppLayout>
+  );
+}
+
+function Th({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <th
+      className={[
+        'px-4 py-3 font-mono text-[10px] uppercase tracking-wide font-medium',
+        className,
+      ].join(' ')}
+    >
+      {children}
+    </th>
   );
 }

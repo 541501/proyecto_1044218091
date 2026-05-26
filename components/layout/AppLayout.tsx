@@ -2,6 +2,8 @@
 
 import { Sidebar } from './Sidebar';
 import { UserRole } from '@/lib/types';
+import { IconAlert, IconArrowRight } from '@/components/icons';
+import Link from 'next/link';
 
 export interface AppLayoutProps {
   children: React.ReactNode;
@@ -10,24 +12,37 @@ export interface AppLayoutProps {
   showSeedBanner?: boolean;
 }
 
-export const AppLayout: React.FC<AppLayoutProps> = ({ children, role, userName = '', showSeedBanner = false }) => (
-  <div className="flex">
+export const AppLayout: React.FC<AppLayoutProps> = ({
+  children,
+  role,
+  userName = '',
+  showSeedBanner = false,
+}) => (
+  <div className="min-h-screen bg-paper text-ink">
     <Sidebar role={role} userName={userName} />
-    <main className="flex-1 ml-64">
-      {showSeedBanner && (
-        <div className="w-full px-6 py-3 text-center border-b" style={{ backgroundColor: 'var(--seed-bg)', borderColor: 'var(--seed-border)', color: 'var(--seed-text)' }}>
-          <p className="text-sm font-medium">
-            🌱 Modo desarrollo (sin base de datos). Accede a{' '}
-            <a href="/admin/db-setup" className="font-semibold underline hover:no-underline">
-              /admin/db-setup
-            </a>{' '}
-            para ejecutar el bootstrap.
-          </p>
+    <main className="lg:ml-72 min-h-screen flex flex-col">
+      {showSeedBanner ? (
+        <div className="bg-[var(--seed-bg)] border-b border-[var(--seed-border)] text-[var(--seed-text)]">
+          <div className="px-6 py-3 flex items-center justify-between gap-4 text-sm">
+            <div className="flex items-center gap-2.5">
+              <IconAlert size={16} />
+              <span>
+                <strong className="font-semibold">Modo seed.</strong>{' '}
+                Aplica el bootstrap para activar la base de datos.
+              </span>
+            </div>
+            {role === 'admin' ? (
+              <Link
+                href="/admin/db-setup"
+                className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide hover:underline"
+              >
+                Ir a configuración <IconArrowRight size={12} />
+              </Link>
+            ) : null}
+          </div>
         </div>
-      )}
-      <div className="p-8">
-        {children}
-      </div>
+      ) : null}
+      <div className="flex-1 px-6 lg:px-12 py-10">{children}</div>
     </main>
   </div>
 );

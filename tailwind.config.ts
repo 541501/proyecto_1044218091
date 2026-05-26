@@ -1,4 +1,4 @@
-import type { Config } from 'tailwindcss'
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: [
@@ -8,28 +8,38 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        playfair: 'var(--font-playfair)',
-        poppins: 'var(--font-poppins)',
+        display: ['var(--font-display)', 'Georgia', 'serif'],
+        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
       },
       colors: {
-        dark: {
-          50: '#f6f6f6',
-          100: '#e7e7e7',
-          900: '#0f0f0f',
-          950: '#050505',
-        },
-        gradient: {
-          cyan: '#06b6d4',
-          purple: '#a855f7',
-          pink: '#ec4899',
-        },
+        paper: 'var(--paper)',
+        'paper-soft': 'var(--paper-soft)',
+        surface: 'var(--surface)',
+        ink: 'var(--ink)',
+        'ink-soft': 'var(--ink-soft)',
+        'ink-mute': 'var(--ink-mute)',
+        rule: 'var(--rule)',
+        'rule-soft': 'var(--rule-soft)',
+        brand: 'var(--brand)',
+        'brand-soft': 'var(--brand-soft)',
+        'brand-tint': 'var(--brand-tint)',
+        accent: 'var(--accent)',
+        'accent-soft': 'var(--accent-soft)',
+        ok: 'var(--ok)',
+        'ok-bg': 'var(--ok-bg)',
+        warn: 'var(--warn)',
+        'warn-bg': 'var(--warn-bg)',
+        bad: 'var(--bad)',
+        'bad-bg': 'var(--bad-bg)',
       },
-      backgroundImage: {
-        'gradient-hero': 'linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%)',
-        'gradient-accent': 'linear-gradient(90deg, #06b6d4, #a855f7, #ec4899)',
+      letterSpacing: {
+        editorial: '-0.022em',
+        wide: '0.08em',
       },
     },
   },
   plugins: [],
-}
-export default config
+};
+
+export default config;

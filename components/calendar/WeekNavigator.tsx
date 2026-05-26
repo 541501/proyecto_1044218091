@@ -1,12 +1,6 @@
-/**
- * components/calendar/WeekNavigator.tsx
- * Navegación de semanas para el calendario
- */
-
 'use client';
 
-import { Button } from '@/components/ui/Button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { IconChevronLeft, IconChevronRight } from '@/components/icons';
 
 interface Props {
   weekStart: string;
@@ -19,15 +13,13 @@ export default function WeekNavigator({
   weekStart,
   onPreviousWeek,
   onNextWeek,
-  onToday
+  onToday,
 }: Props) {
   const startDate = new Date(weekStart);
   const endDate = new Date(startDate);
-  endDate.setDate(endDate.getDate() + 4); // Friday of same week
+  endDate.setDate(endDate.getDate() + 4);
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
-  };
+  const fmt = (d: Date) => d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
 
   const isCurrentWeek = () => {
     const today = new Date();
@@ -36,50 +28,50 @@ export default function WeekNavigator({
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
     end.setDate(end.getDate() + 5);
-
     return today >= start && today < end;
   };
 
   return (
-    <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-slate-200 mb-6">
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={onPreviousWeek}
-        className="flex items-center gap-2"
-      >
-        <ChevronLeft size={18} />
-        Anterior
-      </Button>
-
-      <div className="text-center">
-        <div className="font-semibold text-slate-900">
-          Semana del {formatDate(startDate)} al {formatDate(endDate)}
+    <div className="flex flex-wrap items-center justify-between gap-3 border-y border-rule py-3 mb-6">
+      <div className="flex items-center gap-3">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+            Semana
+          </div>
+          <div className="font-display text-xl text-ink leading-tight">
+            {fmt(startDate)} <span className="text-ink-mute">→</span> {fmt(endDate)}
+          </div>
         </div>
-        <div className="text-xs text-slate-500 mt-1">
-          {isCurrentWeek() ? '(Semana actual)' : ''}
-        </div>
+        {isCurrentWeek() ? (
+          <span className="font-mono text-[10px] uppercase tracking-wide text-accent border border-accent/40 bg-accent-soft px-2 py-0.5">
+            Actual
+          </span>
+        ) : null}
       </div>
 
-      <div className="flex gap-2">
-        {!isCurrentWeek() && (
-          <Button
-            variant="secondary"
-            size="sm"
+      <div className="flex items-center gap-1">
+        <button
+          onClick={onPreviousWeek}
+          className="h-9 px-3 inline-flex items-center gap-1.5 border border-rule text-ink-soft hover:border-ink hover:text-ink transition-colors"
+        >
+          <IconChevronLeft size={14} />
+          <span className="font-mono text-[11px] uppercase tracking-wide">Anterior</span>
+        </button>
+        {!isCurrentWeek() ? (
+          <button
             onClick={onToday}
+            className="h-9 px-3 inline-flex items-center border border-rule text-ink-soft hover:border-ink hover:text-ink transition-colors font-mono text-[11px] uppercase tracking-wide"
           >
             Hoy
-          </Button>
-        )}
-        <Button
-          variant="secondary"
-          size="sm"
+          </button>
+        ) : null}
+        <button
           onClick={onNextWeek}
-          className="flex items-center gap-2"
+          className="h-9 px-3 inline-flex items-center gap-1.5 border border-rule text-ink-soft hover:border-ink hover:text-ink transition-colors"
         >
-          Siguiente
-          <ChevronRight size={18} />
-        </Button>
+          <span className="font-mono text-[11px] uppercase tracking-wide">Siguiente</span>
+          <IconChevronRight size={14} />
+        </button>
       </div>
     </div>
   );

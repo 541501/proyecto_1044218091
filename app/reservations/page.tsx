@@ -1,11 +1,21 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/Button';
-import { Trash2 } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
+import { Badge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  IconDot,
+  IconCheck,
+  IconAlert,
+  IconTrash,
+  IconCalendar,
+  IconClock,
+  IconColumns,
+  IconArrowRight,
+} from '@/components/icons';
 
 interface Reservation {
   id: string;
@@ -17,9 +27,11 @@ interface Reservation {
   group_name: string;
   status: 'confirmada' | 'cancelada';
   created_at: string;
+  cancellation_reason?: string | null;
   room?: { code: string; block_id: string };
   slot?: { name: string; start_time: string; end_time: string };
   block?: { code: string; name: string };
+  professor?: { name: string; email: string };
 }
 
 interface User {
@@ -27,13 +39,11 @@ interface User {
   name: string;
   email: string;
   role: 'profesor' | 'coordinador' | 'admin';
-  is_active: boolean;
-  must_change_password: boolean;
 }
 
 export default function ReservationsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Cargando…</div>}>
+    <Suspense fallback={<div className="p-8 text-ink-mute font-mono text-sm uppercase">Cargando…</div>}>
       <ReservationsContent />
     </Suspense>
   );
@@ -47,7 +57,7 @@ function ReservationsContent() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [selected, setSelected] = useState<Reservation | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [canceling, setCanceling] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -56,343 +66,298 @@ function ReservationsContent() {
   const isAdmin = user?.role === 'admin' || user?.role === 'coordinador';
 
   useEffect(() => {
-    const loadData = async () => {
+    (async () => {
       try {
         setLoading(true);
-
-        // Get user info
         const meRes = await fetch('/api/auth/me');
-        if (meRes.ok) {
-          const userData = await meRes.json();
-          setUser(userData.user);
-        }
-
-        // Get reservations
-        const endpoint = isAdmin ? '/api/reservations' : '/api/reservations/my';
+        const me = meRes.ok ? (await meRes.json()).user : null;
+        setUser(me);
+        const endpoint =
+          me?.role === 'admin' || me?.role === 'coordinador'
+            ? '/api/reservations'
+            : '/api/reservations/my';
         const res = await fetch(endpoint);
-        if (res.ok) {
-          const data = await res.json();
-          setReservations(data);
-        }
-
-        // Show success message if coming from new reservation
+        if (res.ok) setReservations(await res.json());
         if (searchParams.get('success')) {
-          setSuccessMessage('¡Reserva creada exitosamente!');
-          setTimeout(() => setSuccessMessage(''), 5000);
+          setSuccessMessage('Reserva creada con éxito.');
+          setTimeout(() => setSuccessMessage(''), 4000);
         }
-      } catch (error) {
-        console.error('Error loading reservations:', error);
       } finally {
         setLoading(false);
       }
-    };
+    })();
+  }, [searchParams]);
 
-    loadData();
-  }, [isAdmin, searchParams]);
-
-  const canCancelReservation = (reservation: Reservation): boolean => {
-    if (reservation.status !== 'confirmada') return false;
+  const canCancel = (r: Reservation) => {
+    if (r.status !== 'confirmada') return false;
     if (isAdmin) return true;
-
-    // For professor: only future reservations
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const resDate = new Date(reservation.reservation_date);
-    resDate.setHours(0, 0, 0, 0);
-
-    return resDate > today;
-  };
-
-  const handleCancelClick = (reservation: Reservation) => {
-    setSelectedReservation(reservation);
-    setCancelReason('');
-    setShowCancelModal(true);
+    const d = new Date(r.reservation_date);
+    d.setHours(0, 0, 0, 0);
+    return d > today;
   };
 
   const handleConfirmCancel = async () => {
-    if (!selectedReservation) return;
-
-    // For admin/coordinador, reason is required
-    if (isAdmin && !cancelReason.trim()) {
-      alert('Debes proporcionar un motivo de cancelación');
-      return;
-    }
+    if (!selected) return;
+    if (isAdmin && !cancelReason.trim()) return alert('Debes proporcionar un motivo');
 
     setCanceling(true);
-
     try {
-      const res = await fetch(`/api/reservations/${selectedReservation.id}/cancel`, {
+      const res = await fetch(`/api/reservations/${selected.id}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reason: cancelReason || undefined
-        })
+        body: JSON.stringify({ reason: cancelReason || undefined }),
       });
-
       if (res.ok) {
-        // Update local state
-        setReservations(
-          reservations.map((r: Reservation) =>
-            r.id === selectedReservation.id
-              ? { ...r, status: 'cancelada' as const }
-              : r
-          )
+        setReservations((prev) =>
+          prev.map((r) =>
+            r.id === selected.id
+              ? { ...r, status: 'cancelada' as const, cancellation_reason: cancelReason }
+              : r,
+          ),
         );
         setShowCancelModal(false);
-        setSelectedReservation(null);
-        setSuccessMessage('Reserva cancelada exitosamente');
-        setTimeout(() => setSuccessMessage(''), 5000);
-      } else if (res.status === 403) {
-        alert('No tienes permiso para cancelar esta reserva');
+        setSelected(null);
+        setSuccessMessage('Reserva cancelada.');
+        setTimeout(() => setSuccessMessage(''), 4000);
       } else if (res.status === 409) {
-        alert('No se pueden cancelar reservas del día actual o del pasado');
+        alert('No se pueden cancelar reservas del día actual o pasadas.');
       } else {
-        alert('Error al cancelar la reserva');
+        alert('Error al cancelar la reserva.');
       }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error al procesar la solicitud');
     } finally {
       setCanceling(false);
     }
   };
 
-  const filteredReservations = reservations.filter((r: Reservation) => {
-    if (filter === 'all') return true;
-    return r.status === filter;
-  });
+  const filtered = reservations.filter((r) => (filter === 'all' ? true : r.status === filter));
 
-  const getStatusBadgeColor = (status: string) => {
-    return status === 'confirmada'
-      ? 'bg-green-100 text-green-900'
-      : 'bg-slate-100 text-slate-900';
-  };
-
-  const getStatusText = (status: string) => {
-    return status === 'confirmada' ? 'Confirmada' : 'Cancelada';
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('es-CO', {
+  const fmtDate = (s: string) =>
+    new Date(s).toLocaleDateString('es-CO', {
       weekday: 'short',
-      year: 'numeric',
+      day: 'numeric',
       month: 'short',
-      day: 'numeric'
+      year: 'numeric',
     });
-  };
 
   return (
     <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            {isAdmin ? 'Todas las Reservas' : 'Mis Reservas'}
-          </h1>
-          <p className="text-slate-600">
-            {isAdmin
-              ? 'Gestiona todas las reservas del sistema'
-              : 'Visualiza y gestiona tus reservas'}
-          </p>
-        </div>
-
-        {/* Success message */}
-        {successMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-300 rounded-lg text-green-900">
-            ✓ {successMessage}
+        <header className="mb-10 animate-rise">
+          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-ink-mute mb-3">
+            <IconDot size={6} className="text-accent" />
+            <span>{isAdmin ? 'Gestión global · Coordinación' : 'Tu agenda académica'}</span>
           </div>
-        )}
-
-        {/* Filter tabs */}
-        <div className="mb-6 flex gap-2">
-          <button
-            onClick={() => setFilter('confirmada')}
-            className={`px-4 py-2 rounded-lg border transition-all ${
-              filter === 'confirmada'
-                ? 'bg-green-600 text-white border-green-600'
-                : 'bg-white text-slate-900 border-slate-200'
-            }`}
-          >
-            Confirmadas
-          </button>
-          <button
-            onClick={() => setFilter('cancelada')}
-            className={`px-4 py-2 rounded-lg border transition-all ${
-              filter === 'cancelada'
-                ? 'bg-slate-600 text-white border-slate-600'
-                : 'bg-white text-slate-900 border-slate-200'
-            }`}
-          >
-            Canceladas
-          </button>
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg border transition-all ${
-              filter === 'all'
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-slate-900 border-slate-200'
-            }`}
-          >
-            Todas
-          </button>
-        </div>
-
-        {/* Reservations list */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="text-slate-600">Cargando reservas...</div>
-          </div>
-        ) : filteredReservations.length === 0 ? (
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
-            <div className="text-slate-600 mb-4">
-              {isAdmin ? (
-                filter === 'confirmada'
-                  ? 'No hay reservas confirmadas para los filtros seleccionados. Prueba con otro rango de fechas o bloque.'
-                  : filter === 'cancelada'
-                  ? 'No hay reservas canceladas'
-                  : 'No hay reservas registradas'
-              ) : (
-                'Aún no tienes reservas. Consulta la disponibilidad de los bloques para hacer tu primera reserva.'
-              )}
-            </div>
-            {!isAdmin && filter === 'confirmada' && (
-              <Button
-                onClick={() => router.push('/blocks')}
-                className="mt-4"
-              >
-                Ir a Bloques
-              </Button>
+          <h1 className="font-display text-5xl md:text-6xl leading-[0.95] text-ink">
+            {isAdmin ? (
+              <>
+                Todas las
+                <span className="italic text-accent"> reservas</span>
+              </>
+            ) : (
+              <>
+                Mis
+                <span className="italic text-accent"> reservas</span>
+              </>
             )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredReservations.map((reservation: Reservation) => (
-              <div
-                key={reservation.id}
-                className={`bg-white border border-slate-200 rounded-lg p-4 ${
-                  reservation.status === 'cancelada' ? 'opacity-60' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="text-lg font-bold text-slate-900">
-                        {reservation.room?.code || '—'}
-                      </div>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadgeColor(
-                          reservation.status
-                        )}`}
-                      >
-                        {getStatusText(reservation.status)}
-                      </span>
-                    </div>
+          </h1>
+        </header>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <div className="text-slate-600">Materia</div>
-                        <div className="font-semibold text-slate-900">
-                          {reservation.subject}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-slate-600">Grupo</div>
-                        <div className="font-semibold text-slate-900">
-                          {reservation.group_name}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-slate-600">Fecha</div>
-                        <div className="font-semibold text-slate-900">
-                          {formatDate(reservation.reservation_date)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-slate-600">Franja</div>
-                        <div className="font-semibold text-slate-900">
-                          {reservation.slot?.name || '—'}
-                        </div>
-                      </div>
+        {successMessage ? (
+          <div className="mb-6 px-4 py-3 border-l-2 border-ok bg-ok-bg/60 text-ok text-sm inline-flex items-center gap-2.5">
+            <IconCheck size={16} />
+            {successMessage}
+          </div>
+        ) : null}
+
+        {/* Filter chips */}
+        <div className="border-y border-rule py-3 mb-8 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-1">
+            {(['confirmada', 'cancelada', 'all'] as const).map((f) => {
+              const active = filter === f;
+              const label = f === 'all' ? 'Todas' : f === 'confirmada' ? 'Confirmadas' : 'Canceladas';
+              const count =
+                f === 'all'
+                  ? reservations.length
+                  : reservations.filter((r) => r.status === f).length;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={[
+                    'inline-flex items-baseline gap-2 px-3 py-2 border transition-colors text-sm',
+                    active
+                      ? 'bg-ink text-paper border-ink'
+                      : 'bg-transparent text-ink-soft border-rule hover:border-ink hover:text-ink',
+                  ].join(' ')}
+                >
+                  <span className="font-mono text-[11px] uppercase tracking-wide">{label}</span>
+                  <span
+                    className={[
+                      'font-mono text-[10px]',
+                      active ? 'text-paper/70' : 'text-ink-mute',
+                    ].join(' ')}
+                  >
+                    {String(count).padStart(2, '0')}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {!isAdmin ? (
+            <button
+              onClick={() => router.push('/blocks')}
+              className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-ink-soft hover:text-ink transition-colors"
+            >
+              Nueva reserva
+              <IconArrowRight size={14} />
+            </button>
+          ) : null}
+        </div>
+
+        {loading ? (
+          <div className="text-center py-12 font-mono text-sm uppercase tracking-wide text-ink-mute">
+            Cargando reservas…
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            eyebrow={filter === 'cancelada' ? 'Sin canceladas' : 'Sin reservas'}
+            title={
+              isAdmin
+                ? 'No hay reservas en este filtro'
+                : 'No tienes reservas aún'
+            }
+            description={
+              isAdmin
+                ? 'Cuando los docentes reserven salones aparecerán acá.'
+                : 'Explora la disponibilidad por bloque para registrar tu primera reserva.'
+            }
+            action={!isAdmin ? { label: 'Ir a bloques', onClick: () => router.push('/blocks') } : undefined}
+          />
+        ) : (
+          <ul className="divide-y divide-rule border-y border-rule">
+            {filtered.map((r) => (
+              <li
+                key={r.id}
+                className={[
+                  'py-5 group',
+                  r.status === 'cancelada' ? 'opacity-60' : '',
+                ].join(' ')}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="font-mono text-[11px] uppercase tracking-wide text-ink-mute">
+                        {r.room?.code ?? '—'}
+                      </span>
+                      <Badge variant={r.status === 'confirmada' ? 'success' : 'default'}>
+                        {r.status === 'confirmada' ? 'Confirmada' : 'Cancelada'}
+                      </Badge>
                     </div>
+                    <h3 className="font-display text-2xl text-ink leading-tight mt-1.5">
+                      {r.subject}
+                    </h3>
+                    <div className="mt-2 text-sm text-ink-soft flex flex-wrap items-center gap-x-5 gap-y-1">
+                      <span className="inline-flex items-center gap-1.5">
+                        <IconColumns size={14} />
+                        {r.room?.code ?? '—'}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <IconClock size={14} />
+                        {r.slot?.name ?? '—'}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <IconCalendar size={14} />
+                        <span className="capitalize">{fmtDate(r.reservation_date)}</span>
+                      </span>
+                      <span className="font-mono text-[12px] text-ink-mute">
+                        Grupo: {r.group_name}
+                      </span>
+                      {isAdmin && r.professor?.name ? (
+                        <span className="font-mono text-[12px] text-ink-mute">
+                          · {r.professor.name}
+                        </span>
+                      ) : null}
+                    </div>
+                    {r.status === 'cancelada' && r.cancellation_reason ? (
+                      <div className="mt-3 text-sm text-ink-soft italic border-l-2 border-rule pl-3">
+                        {r.cancellation_reason}
+                      </div>
+                    ) : null}
                   </div>
 
-                  {/* Cancel button */}
-                  {canCancelReservation(reservation) && (
+                  {canCancel(r) ? (
                     <button
-                      onClick={() => handleCancelClick(reservation)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded ml-4 transition-colors"
-                      title="Cancelar reserva"
+                      onClick={() => {
+                        setSelected(r);
+                        setCancelReason('');
+                        setShowCancelModal(true);
+                      }}
+                      className="text-ink-mute hover:text-bad transition-colors p-2"
+                      aria-label="Cancelar reserva"
                     >
-                      <Trash2 size={20} />
+                      <IconTrash size={18} />
                     </button>
-                  )}
+                  ) : null}
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
+
+        {/* Cancel modal */}
+        <Modal
+          isOpen={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          title="Cancelar reserva"
+          eyebrow="Acción irreversible"
+          actions={[
+            {
+              label: canceling ? 'Cancelando…' : 'Cancelar reserva',
+              variant: 'danger',
+              onClick: handleConfirmCancel,
+              isLoading: canceling,
+            },
+          ]}
+        >
+          {selected ? (
+            <div className="space-y-4">
+              <div className="border border-rule bg-paper-soft/60 p-4">
+                <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-1">
+                  Reserva
+                </div>
+                <div className="font-display text-lg text-ink">{selected.subject}</div>
+                <div className="mt-2 text-sm text-ink-soft space-y-1">
+                  <div>Salón: <span className="text-ink">{selected.room?.code}</span></div>
+                  <div>Franja: <span className="text-ink">{selected.slot?.name}</span></div>
+                  <div>Fecha: <span className="text-ink capitalize">{fmtDate(selected.reservation_date)}</span></div>
+                </div>
+              </div>
+
+              {isAdmin ? (
+                <div>
+                  <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                    Motivo de cancelación · obligatorio
+                  </label>
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="Describe el motivo para constancia."
+                    rows={3}
+                    className="field"
+                  />
+                </div>
+              ) : null}
+
+              <div className="flex items-start gap-2 text-warn text-sm">
+                <IconAlert size={16} className="mt-0.5 flex-shrink-0" />
+                <span>Una vez cancelada, la franja quedará libre para otro docente.</span>
+              </div>
+            </div>
+          ) : null}
+        </Modal>
       </div>
-
-      {/* Cancel modal */}
-      {showCancelModal && selectedReservation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              Cancelar Reserva
-            </h3>
-
-            <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded">
-              <div className="text-sm text-slate-600">
-                <div>
-                  <strong>Salón:</strong> {selectedReservation.room?.code}
-                </div>
-                <div>
-                  <strong>Materia:</strong> {selectedReservation.subject}
-                </div>
-                <div>
-                  <strong>Fecha:</strong> {formatDate(selectedReservation.reservation_date)}
-                </div>
-              </div>
-            </div>
-
-            {/* Reason textarea for admin/coordinador */}
-            {isAdmin && (
-              <div className="mb-4">
-                <label className="block text-sm font-semibold text-slate-900 mb-2">
-                  Motivo de cancelación *
-                </label>
-                <textarea
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Describe el motivo de la cancelación"
-                  rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            )}
-
-            <div className="text-sm text-slate-600 mb-6">
-              ¿Está seguro de que desea cancelar esta reserva?
-            </div>
-
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="secondary"
-                onClick={() => setShowCancelModal(false)}
-              >
-                Mantener
-              </Button>
-              <Button
-                onClick={handleConfirmCancel}
-                disabled={canceling || (isAdmin && !cancelReason.trim())}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                {canceling ? 'Cancelando...' : 'Cancelar Reserva'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </AppLayout>
   );
 }

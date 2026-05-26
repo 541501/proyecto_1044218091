@@ -3,11 +3,18 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Table } from '@/components/ui/Table';
+import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
+import {
+  IconShield,
+  IconAlert,
+  IconCheck,
+  IconDot,
+  IconArchive,
+  IconHash,
+} from '@/components/icons';
 
 interface DiagnosticData {
   mode: 'seed' | 'live';
@@ -15,9 +22,9 @@ interface DiagnosticData {
   jwt: 'configured' | 'not_configured';
   database_url: string;
   migrations: {
-    applied: string[];
-    pending: string[];
-    appliedList: Array<{ filename: string; applied_at: string }>;
+    applied: number;
+    pending: number;
+    appliedList: Array<{ filename: string; applied_at: string } | string>;
     pendingList: string[];
   };
   tables: {
@@ -25,7 +32,6 @@ interface DiagnosticData {
     blocks: number;
     slots: number;
     rooms: number;
-    reservations: number;
   };
 }
 
@@ -39,26 +45,21 @@ export default function DbSetupPage() {
   const [showSecretModal, setShowSecretModal] = useState(false);
   const [secretInput, setSecretInput] = useState('');
 
+  const loadDiagnostic = async () => {
+    const diagRes = await fetch('/api/system/diagnose');
+    if (diagRes.ok) setDiagnostic(await diagRes.json());
+  };
+
   useEffect(() => {
     (async () => {
       try {
-        // Check user
         const meRes = await fetch('/api/auth/me');
         if (!meRes.ok) throw new Error('Not authenticated');
-        const meData = await meRes.json();
-        if (meData.user.role !== 'admin') {
-          router.push('/dashboard');
-          return;
-        }
-        setUser(meData.user);
-
-        // Get diagnostic
-        const diagRes = await fetch('/api/system/diagnose');
-        if (!diagRes.ok) throw new Error('Failed to fetch diagnostic');
-        const diagData = await diagRes.json();
-        setDiagnostic(diagData);
-      } catch (err) {
-        console.error('Error:', err);
+        const userData = (await meRes.json()).user;
+        if (userData?.role !== 'admin') return router.push('/dashboard');
+        setUser(userData);
+        await loadDiagnostic();
+      } catch {
         router.push('/login');
       } finally {
         setLoading(false);
@@ -66,17 +67,8 @@ export default function DbSetupPage() {
     })();
   }, [router]);
 
-  const handleBootstrap = async () => {
-    if (!confirm('¿Ejecutar bootstrap? Se aplicarán migrations y se cargarán datos iniciales.')) return;
-    setShowSecretModal(true);
-  };
-
   const confirmBootstrap = async () => {
-    if (!secretInput.trim()) {
-      addToast('El secret es requerido', 'error');
-      return;
-    }
-
+    if (!secretInput.trim()) return addToast('El secreto es requerido', 'error');
     setShowSecretModal(false);
     setBootstrapping(true);
     try {
@@ -85,23 +77,15 @@ export default function DbSetupPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ secret: secretInput }),
       });
-
       if (!res.ok) {
         const err = await res.json();
         addToast(`Error: ${err.error || 'Bootstrap fallido'}`, 'error');
       } else {
         const data = await res.json();
-        addToast(`✓ Bootstrap exitoso: ${data.appliedMigrations.join(', ')}`, 'success');
-
-        // Reload diagnostic
-        const diagRes = await fetch('/api/system/diagnose');
-        if (diagRes.ok) {
-          const diagData = await diagRes.json();
-          setDiagnostic(diagData);
-        }
+        addToast(`Bootstrap exitoso: ${data.appliedMigrations.length} migrations aplicadas`, 'success');
+        await loadDiagnostic();
       }
-    } catch (err) {
-      console.error('Bootstrap error:', err);
+    } catch {
       addToast('Error durante bootstrap', 'error');
     } finally {
       setBootstrapping(false);
@@ -110,175 +94,223 @@ export default function DbSetupPage() {
   };
 
   if (loading || !user || !diagnostic) {
-    return <div className="flex items-center justify-center h-screen">Cargando...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-paper text-ink-mute font-mono text-sm uppercase tracking-wide">
+        Cargando diagnóstico…
+      </div>
+    );
   }
 
+  const statusOk = diagnostic.supabase === 'connected' && diagnostic.jwt === 'configured';
+
   return (
-    <AppLayout role="admin" userName={user.email} showSeedBanner={diagnostic.mode === 'seed'}>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Configuración de Base de Datos</h1>
-          <p className="text-slate-600">Diagnóstico y bootstrap del sistema</p>
-        </div>
+    <AppLayout role="admin" userName={user.name || user.email} showSeedBanner={diagnostic.mode === 'seed'}>
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-10 animate-rise">
+          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-ink-mute mb-3">
+            <IconDot size={6} className="text-accent" />
+            <span>Administración · Sistema</span>
+          </div>
+          <h1 className="font-display text-5xl md:text-6xl leading-[0.95] text-ink">
+            Configuración
+            <span className="italic text-accent"> técnica</span>
+          </h1>
+          <p className="mt-4 max-w-xl text-ink-soft text-[15px] leading-relaxed">
+            Diagnóstico de conexiones, control de migrations y bootstrap inicial del sistema.
+          </p>
+        </header>
 
-        {/* Estado del Sistema */}
-        <Card>
-          <CardTitle>Estado del Sistema</CardTitle>
-          <CardContent className="mt-4 grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-slate-600 mb-1">Modo</p>
-              <Badge variant={diagnostic.mode === 'live' ? 'success' : 'warning'}>
-                {diagnostic.mode === 'live' ? '🔴 Live (Postgres)' : '🌱 Seed (desarrollo)'}
-              </Badge>
-            </div>
-            <div>
-              <p className="text-sm text-slate-600 mb-1">Supabase</p>
-              <Badge variant={diagnostic.supabase === 'connected' ? 'success' : 'danger'}>
-                {diagnostic.supabase}
-              </Badge>
-            </div>
-            <div>
-              <p className="text-sm text-slate-600 mb-1">JWT</p>
-              <Badge variant={diagnostic.jwt === 'configured' ? 'success' : 'danger'}>
-                {diagnostic.jwt}
-              </Badge>
-            </div>
-            <div>
-              <p className="text-sm text-slate-600 mb-1">Database URL</p>
-              <code className="text-xs bg-slate-100 px-2 py-1 rounded">
-                {diagnostic.database_url ? '✓ Configurada' : '✗ No configurada'}
-              </code>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Status grid */}
+        <section className="mb-10">
+          <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-3">
+            Estado del sistema
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-rule border border-rule">
+            <StatusCell
+              label="Modo"
+              value={diagnostic.mode === 'live' ? 'Live · Postgres' : 'Seed · Desarrollo'}
+              tone={diagnostic.mode === 'live' ? 'success' : 'warning'}
+            />
+            <StatusCell
+              label="Supabase"
+              value={diagnostic.supabase}
+              tone={diagnostic.supabase === 'connected' ? 'success' : 'danger'}
+            />
+            <StatusCell
+              label="JWT"
+              value={diagnostic.jwt}
+              tone={diagnostic.jwt === 'configured' ? 'success' : 'danger'}
+            />
+            <StatusCell
+              label="Database URL"
+              value={diagnostic.database_url === 'configured' ? 'OK' : 'Falta'}
+              tone={diagnostic.database_url === 'configured' ? 'success' : 'danger'}
+            />
+          </div>
+        </section>
 
-        {/* Migrations */}
-        <Card>
-          <CardTitle>Migrations</CardTitle>
-          <CardContent className="mt-4 space-y-4">
-            {diagnostic.migrations?.appliedList && diagnostic.migrations.appliedList.length > 0 && (
-              <div>
-                <p className="text-sm font-semibold text-slate-900 mb-2">Aplicadas ({diagnostic.migrations.appliedList.length})</p>
-                <ul className="space-y-1">
-                  {diagnostic.migrations.appliedList.map((m) => (
-                    <li key={m.filename} className="text-sm flex justify-between text-slate-600">
-                      <span>✓ {m.filename}</span>
-                      <span className="text-xs">{new Date(m.applied_at).toLocaleString()}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {diagnostic.migrations?.pendingList && diagnostic.migrations.pendingList.length > 0 && (
-              <div>
-                <p className="text-sm font-semibold text-slate-900 mb-2">Pendientes ({diagnostic.migrations.pendingList.length})</p>
-                <ul className="space-y-1">
-                  {diagnostic.migrations.pendingList.map((m) => (
-                    <li key={m} className="text-sm text-slate-600">
-                      ⏳ {m}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Conteo de Tablas */}
-        <Card>
-          <CardTitle>Datos en la Base de Datos</CardTitle>
-          <CardContent className="mt-4 grid grid-cols-5 gap-4">
+        {/* Tables */}
+        <section className="mb-10">
+          <div className="flex items-end justify-between mb-3">
+            <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+              Conteo de tablas
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {Object.entries(diagnostic.tables).map(([table, count]) => (
-              <div key={table} className="text-center p-4 bg-slate-50 rounded-lg">
-                <p className="text-2xl font-bold text-blue-600">{count}</p>
-                <p className="text-xs text-slate-600 capitalize">{table}</p>
+              <div key={table} className="border border-rule bg-surface p-5">
+                <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+                  <IconHash size={12} />
+                  <span>{table}</span>
+                </div>
+                <div className="font-display text-5xl text-ink leading-none mt-3">{count}</div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-
-        {/* Bootstrap Panel */}
-        {diagnostic.mode === 'seed' && (
-          <Card className="border-amber-200 bg-amber-50">
-            <CardTitle>Panel de Bootstrap</CardTitle>
-            <CardContent className="mt-4">
-              <p className="text-sm text-slate-700 mb-4">
-                Haz clic en &quot;Ejecutar Bootstrap&quot; para:
-              </p>
-              <ul className="text-sm text-slate-700 space-y-2 mb-6 ml-4">
-                <li>✓ Aplicar 1 migration (<code className="bg-white px-2 py-1 rounded">0001_init_users.sql</code>)</li>
-                <li>✓ Crear 1 usuario admin (admin@classsport.edu.co)</li>
-                <li>✓ Crear 3 bloques (A, B, C)</li>
-                <li>✓ Crear 6 franjas horarias (07:00–20:00)</li>
-                <li>✓ Crear 4 salones de demo</li>
-              </ul>
-              <p className="text-xs text-slate-600 mb-4">
-                Requiere ADMIN_BOOTSTRAP_SECRET. Consulta con el administrador del sistema.
-              </p>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button
-                variant="primary"
-                onClick={handleBootstrap}
-                isLoading={bootstrapping}
-                disabled={bootstrapping}
-              >
-                {bootstrapping ? 'Ejecutando...' : 'Ejecutar Bootstrap'}
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
-
-        {/* Post-Bootstrap Info */}
-        {diagnostic.mode === 'live' && (
-          <Card className="border-green-200 bg-green-50">
-            <CardTitle>✓ Sistema Activo</CardTitle>
-            <CardContent className="mt-4">
-              <p className="text-sm text-slate-700">
-                El bootstrap se ha completado exitosamente. El sistema está en modo live (Postgres) y listo para usar.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Secret Input Modal */}
-        {showSecretModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <Card className="w-full max-w-sm">
-              <CardTitle>Ingresa ADMIN_BOOTSTRAP_SECRET</CardTitle>
-              <CardContent className="mt-4">
-                <input
-                  type="password"
-                  value={secretInput}
-                  onChange={(e) => setSecretInput(e.target.value)}
-                  placeholder="ADMIN_BOOTSTRAP_SECRET"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  onKeyDown={(e) => e.key === 'Enter' && confirmBootstrap()}
-                />
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setShowSecretModal(false);
-                    setSecretInput('');
-                  }}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={confirmBootstrap}
-                  isLoading={bootstrapping}
-                >
-                  Confirmar
-                </Button>
-              </CardFooter>
-            </Card>
           </div>
+        </section>
+
+        {/* Migrations */}
+        <section className="mb-10">
+          <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-3 inline-flex items-center gap-2">
+            <IconArchive size={12} />
+            Migrations · {diagnostic.migrations.applied} aplicadas · {diagnostic.migrations.pending} pendientes
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="border border-rule bg-surface p-5">
+              <h3 className="font-display text-lg text-ink mb-3">Aplicadas</h3>
+              {diagnostic.migrations.appliedList.length === 0 ? (
+                <p className="text-sm text-ink-mute italic">Aún no se aplican migrations.</p>
+              ) : (
+                <ul className="space-y-1.5 font-mono text-[12px]">
+                  {diagnostic.migrations.appliedList.map((m: any) => {
+                    const name = typeof m === 'string' ? m : m.filename;
+                    return (
+                      <li key={name} className="flex items-center gap-2 text-ok">
+                        <IconCheck size={12} />
+                        <span>{name}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+            <div className="border border-rule bg-surface p-5">
+              <h3 className="font-display text-lg text-ink mb-3">Pendientes</h3>
+              {diagnostic.migrations.pendingList.length === 0 ? (
+                <p className="text-sm text-ink-mute italic">Sin migrations pendientes.</p>
+              ) : (
+                <ul className="space-y-1.5 font-mono text-[12px]">
+                  {diagnostic.migrations.pendingList.map((m) => (
+                    <li key={m} className="flex items-center gap-2 text-warn">
+                      <IconAlert size={12} />
+                      <span>{m}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Bootstrap action */}
+        {diagnostic.mode === 'seed' ? (
+          <section className="border-l-4 border-accent bg-accent-soft/60 p-6">
+            <div className="font-mono text-[10px] uppercase tracking-wide text-accent mb-2 inline-flex items-center gap-2">
+              <IconShield size={12} />
+              Bootstrap requerido
+            </div>
+            <h2 className="font-display text-3xl text-ink leading-tight">
+              Aplica el bootstrap inicial
+            </h2>
+            <p className="text-ink-soft mt-3 max-w-xl text-sm leading-relaxed">
+              Aplicará las migrations pendientes, creará los 3 bloques, las 6 franjas horarias, los 4 salones de demo y el usuario administrador inicial.
+            </p>
+            <div className="mt-5">
+              <Button
+                variant="ink"
+                onClick={() => setShowSecretModal(true)}
+                isLoading={bootstrapping}
+              >
+                {bootstrapping ? 'Ejecutando…' : 'Ejecutar bootstrap'}
+              </Button>
+            </div>
+          </section>
+        ) : (
+          <section className="border-l-4 border-ok bg-ok-bg/60 p-6">
+            <div className="font-mono text-[10px] uppercase tracking-wide text-ok mb-2 inline-flex items-center gap-2">
+              <IconCheck size={12} />
+              Sistema activo
+            </div>
+            <h2 className="font-display text-3xl text-ink leading-tight">
+              Modo live · Postgres activo
+            </h2>
+            <p className="text-ink-soft mt-3 max-w-xl text-sm">
+              {statusOk
+                ? 'Todas las conexiones están operativas. Puedes seguir con la gestión normal.'
+                : 'Hay servicios marcados como faltantes. Revisa la sección de estado.'}
+            </p>
+            {diagnostic.migrations.pending > 0 ? (
+              <div className="mt-5">
+                <Button variant="ink" onClick={() => setShowSecretModal(true)}>
+                  Aplicar migrations pendientes
+                </Button>
+              </div>
+            ) : null}
+          </section>
         )}
+
+        {/* Secret Modal */}
+        <Modal
+          isOpen={showSecretModal}
+          onClose={() => setShowSecretModal(false)}
+          title="Bootstrap protegido"
+          eyebrow="Ingresa el secreto"
+          actions={[
+            {
+              label: 'Confirmar',
+              variant: 'ink',
+              onClick: confirmBootstrap,
+              isLoading: bootstrapping,
+            },
+          ]}
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-ink-soft">
+              Por seguridad, las operaciones de migración exigen confirmar el secreto del sistema.
+            </p>
+            <input
+              type="password"
+              value={secretInput}
+              onChange={(e) => setSecretInput(e.target.value)}
+              placeholder="ADMIN_BOOTSTRAP_SECRET"
+              className="field font-mono"
+              onKeyDown={(e) => e.key === 'Enter' && confirmBootstrap()}
+              autoFocus
+            />
+          </div>
+        </Modal>
       </div>
     </AppLayout>
+  );
+}
+
+function StatusCell({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: 'success' | 'warning' | 'danger';
+}) {
+  return (
+    <div className="bg-surface p-5">
+      <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-2">
+        {label}
+      </div>
+      <Badge variant={tone === 'success' ? 'success' : tone === 'warning' ? 'warning' : 'danger'}>
+        {value}
+      </Badge>
+    </div>
   );
 }

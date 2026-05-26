@@ -1,88 +1,65 @@
-/**
- * components/calendar/SlotCell.tsx
- * Celda individual de una franja horaria en el calendario semanal
- * Estados: libre (verde), ocupada (roja), pasada (gris)
- */
-
 'use client';
 
 import { SlotCell as SlotCellType } from '@/lib/types';
-import { useState } from 'react';
 
 interface Props {
   slot: SlotCellType;
   onClick?: () => void;
-  showDetails?: boolean;
 }
 
-export default function SlotCell({ slot, onClick, showDetails }: Props) {
-  const [showTooltip, setShowTooltip] = useState(false);
+export default function SlotCell({ slot, onClick }: Props) {
+  const isFree = slot.state === 'libre';
 
-  const isClickable = slot.state === 'libre';
-  const isPast = slot.state === 'pasada' || slot.state === 'ocupada_pasada';
-
-  const baseStyles = `
-    p-3 rounded-lg border transition-all cursor-pointer
-    text-center text-sm font-medium
-    min-h-[60px] md:min-h-[80px] flex items-center justify-center
-  `;
-
-  let colorStyles = '';
-  let textContent = slot.slotName;
-
-  switch (slot.state) {
-    case 'libre':
-      colorStyles = 'bg-green-50 border-green-300 text-green-900 hover:bg-green-100';
-      break;
-    case 'ocupada':
-      colorStyles = 'bg-red-50 border-red-300 text-red-900 cursor-default';
-      textContent = '• OCUPADA •';
-      break;
-    case 'ocupada_pasada':
-    case 'pasada':
-      colorStyles = 'bg-slate-100 border-slate-300 text-slate-500 cursor-default';
-      textContent = 'PASADA';
-      break;
-  }
-
-  const handleClick = () => {
-    if (isClickable && onClick) {
-      onClick();
-    }
+  const variants: Record<string, string> = {
+    libre:
+      'bg-ok-bg border-ok/40 text-ok hover:border-ok hover:bg-ok/15 cursor-pointer',
+    ocupada:
+      'bg-bad-bg border-bad/40 text-bad cursor-default',
+    ocupada_pasada:
+      'bg-paper-soft border-rule text-ink-mute cursor-not-allowed line-through',
+    pasada:
+      'bg-paper-soft border-rule text-ink-mute cursor-not-allowed',
   };
 
   return (
-    <div
-      className={`${baseStyles} ${colorStyles} ${isClickable ? '' : 'cursor-not-allowed'}`}
-      onClick={handleClick}
-      onMouseEnter={() => slot.reservation && setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-      role="button"
-      tabIndex={isClickable ? 0 : -1}
+    <button
+      type="button"
+      onClick={() => (isFree && onClick ? onClick() : undefined)}
+      disabled={!isFree}
+      className={[
+        'group relative w-full min-h-[80px] border p-3 text-left transition-colors',
+        variants[slot.state] || variants.pasada,
+      ].join(' ')}
+      title={
+        slot.reservation
+          ? `${slot.reservation.professorName} — ${slot.reservation.subject} (${slot.reservation.groupName})`
+          : undefined
+      }
     >
-      <div>
-        <div className="font-semibold">{slot.slotName}</div>
-        
-        {slot.state === 'ocupada' && slot.reservation && (
-          <>
-            <div className="text-xs mt-1 font-normal">
-              {slot.reservation.professorName}
-            </div>
-            <div className="text-xs font-normal opacity-75">
-              {slot.reservation.subject}
-            </div>
-          </>
-        )}
-
-        {/* Tooltip en desktop */}
-        {showTooltip && slot.reservation && (
-          <div className="absolute z-10 mt-2 bg-slate-900 text-white px-3 py-2 rounded text-xs whitespace-nowrap">
-            <div className="font-semibold">{slot.reservation.professorName}</div>
-            <div>{slot.reservation.subject}</div>
-            <div>Grupo: {slot.reservation.groupName}</div>
-          </div>
-        )}
+      <div className="font-mono text-[10px] uppercase tracking-wide opacity-80">
+        {slot.slotName}
       </div>
-    </div>
+
+      {slot.state === 'libre' ? (
+        <div className="mt-2 font-display text-base">Libre</div>
+      ) : null}
+
+      {slot.state === 'ocupada' && slot.reservation ? (
+        <div className="mt-1.5 space-y-0.5">
+          <div className="font-display text-[15px] leading-tight line-clamp-2">
+            {slot.reservation.subject}
+          </div>
+          <div className="text-[11px] opacity-80 line-clamp-1">
+            {slot.reservation.professorName}
+          </div>
+        </div>
+      ) : null}
+
+      {(slot.state === 'pasada' || slot.state === 'ocupada_pasada') ? (
+        <div className="mt-2 font-mono text-[11px] uppercase tracking-wide opacity-75">
+          Pasada
+        </div>
+      ) : null}
+    </button>
   );
 }

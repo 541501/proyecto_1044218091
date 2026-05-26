@@ -5,26 +5,42 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import WeeklyCalendar from '@/components/calendar/WeeklyCalendar';
 import { WeeklyCalendar as WeeklyCalendarType } from '@/lib/types';
-import { Button } from '@/components/ui/Button';
-import { ChevronLeft } from 'lucide-react';
+import {
+  IconChevronLeft,
+  IconUsers,
+  IconDot,
+  IconBookOpen,
+  IconLab,
+  IconAuditorium,
+  IconMonitor,
+  IconDoorway,
+} from '@/components/icons';
+
+const TYPE: Record<string, { label: string; icon: React.ReactNode }> = {
+  salon: { label: 'Salón', icon: <IconBookOpen size={16} /> },
+  laboratorio: { label: 'Laboratorio', icon: <IconLab size={16} /> },
+  auditorio: { label: 'Auditorio', icon: <IconAuditorium size={16} /> },
+  sala_computo: { label: 'Sala de cómputo', icon: <IconMonitor size={16} /> },
+  otro: { label: 'Otro', icon: <IconDoorway size={16} /> },
+};
 
 export default function RoomDetailsPage({
-  params: paramsPromise
+  params: paramsPromise,
 }: {
-  params: Promise<{ blockId: string; roomId: string }>
+  params: Promise<{ blockId: string; roomId: string }>;
 }) {
   const params = use(paramsPromise);
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const [calendar, setCalendar] = useState<WeeklyCalendarType | null>(null);
   const [room, setRoom] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [currentWeekStart, setCurrentWeekStart] = useState<string>('');
 
   const selectedDate = searchParams.get('date') || new Date().toISOString().split('T')[0];
-  
-  // Calcular Monday de la semana actual
+
   const getMonday = (dateStr: string) => {
     const date = new Date(dateStr);
     const day = date.getDay();
@@ -33,122 +49,102 @@ export default function RoomDetailsPage({
     return monday.toISOString().split('T')[0];
   };
 
-  const weekStart = getMonday(selectedDate);
+  useEffect(() => {
+    setCurrentWeekStart(getMonday(selectedDate));
+  }, [selectedDate]);
 
   useEffect(() => {
-    const loadData = async () => {
+    if (!currentWeekStart) return;
+    (async () => {
       try {
         setLoading(true);
-
-        // Get user info
         const meRes = await fetch('/api/auth/me');
-        if (meRes.ok) {
-          const userData = await meRes.json();
-          setUser(userData);
-        }
-
-        // Get room info
+        if (meRes.ok) setUser((await meRes.json()).user ?? null);
         const roomRes = await fetch(`/api/rooms/${params.roomId}`);
-        if (roomRes.ok) {
-          const roomData = await roomRes.json();
-          setRoom(roomData);
-        }
-
-        // Get weekly calendar
-        const calendarRes = await fetch(`/api/rooms/${params.roomId}/calendar?weekStart=${weekStart}`);
-        if (calendarRes.ok) {
-          const calendarData = await calendarRes.json();
-          setCalendar(calendarData);
-        }
-      } catch (error) {
-        console.error('Error loading room details:', error);
+        if (roomRes.ok) setRoom(await roomRes.json());
+        const calRes = await fetch(`/api/rooms/${params.roomId}/calendar?weekStart=${currentWeekStart}`);
+        if (calRes.ok) setCalendar(await calRes.json());
       } finally {
         setLoading(false);
       }
-    };
-
-    loadData();
-  }, [params.roomId, weekStart]);
+    })();
+  }, [params.roomId, currentWeekStart]);
 
   const handleSlotClick = (dayIndex: number, slotIndex: number) => {
     if (!calendar) return;
-
     const day = calendar.days[dayIndex];
     const slot = day.slots[slotIndex];
-
-    // Solo permitir click en slots libres
     if (slot.state === 'libre') {
-      // Navegar a la página de crear reserva con parámetros pre-llenados
-      const reservationDate = day.date;
       router.push(
-        `/reservations/new?roomId=${params.roomId}&slotId=${slot.slotId}&date=${reservationDate}`
+        `/reservations/new?roomId=${params.roomId}&slotId=${slot.slotId}&date=${day.date}`,
       );
     }
   };
 
-  const handleBack = () => {
-    router.back();
-  };
+  const meta = room?.type ? TYPE[room.type] ?? TYPE.otro : null;
 
   return (
     <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
       <div className="max-w-6xl mx-auto">
-        {/* Encabezado */}
-        <div className="mb-8">
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
-          >
-            <ChevronLeft size={20} />
-            Volver
-          </button>
-          
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            {room?.code || 'Salón'}
-          </h1>
-          <div className="flex gap-4 text-slate-600">
-            <div>
-              <span className="font-semibold">Tipo:</span> {room?.type || '—'}
-            </div>
-            <div>
-              <span className="font-semibold">Capacidad:</span> {room?.capacity || '—'} personas
-            </div>
-          </div>
-          {room?.equipment && (
-            <div className="text-slate-600 mt-2">
-              <span className="font-semibold">Equipamiento:</span> {room.equipment}
-            </div>
-          )}
-        </div>
+        <button
+          onClick={() => router.back()}
+          className="mb-8 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-ink-soft hover:text-ink transition-colors"
+        >
+          <IconChevronLeft size={14} />
+          Volver al bloque
+        </button>
 
-        {/* Calendario */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="text-slate-600">Cargando calendario...</div>
+        <header className="mb-10 animate-rise grid md:grid-cols-[1fr_auto] gap-6 items-end border-b border-rule pb-8">
+          <div>
+            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-ink-mute mb-3">
+              <IconDot size={6} className="text-accent" />
+              <span>{meta?.label ?? 'Salón'}</span>
+            </div>
+            <h1 className="font-display text-6xl md:text-7xl leading-[0.9] text-ink">
+              {room?.code ?? 'Salón'}
+            </h1>
           </div>
-        ) : (
+
+          <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+            <dt className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">Capacidad</dt>
+            <dd className="font-display text-xl text-ink flex items-center gap-2">
+              <IconUsers size={14} className="text-ink-mute" />
+              {room?.capacity ?? '—'}
+            </dd>
+            <dt className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">Equipamiento</dt>
+            <dd className="text-ink-soft max-w-xs">{room?.equipment || <span className="italic text-ink-mute">Sin equipo</span>}</dd>
+          </dl>
+        </header>
+
+        <section className="mb-8">
+          <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-2">
+            Calendario semanal
+          </div>
           <WeeklyCalendar
             calendar={calendar}
             loading={loading}
             onSlotClick={handleSlotClick}
+            onWeekChange={(ws) => setCurrentWeekStart(ws)}
           />
-        )}
+        </section>
 
-        {/* Leyenda */}
-        <div className="mt-8 bg-slate-50 border border-slate-200 rounded-lg p-4">
-          <div className="text-sm font-semibold text-slate-900 mb-3">Leyenda:</div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded border-2 border-green-300 bg-green-50"></div>
-              <span className="text-sm text-slate-600">Libre</span>
+        {/* Legend */}
+        <div className="border border-rule bg-paper-soft/50 p-5 mt-10">
+          <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-3">
+            Convenciones
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="flex items-center gap-2.5">
+              <span className="w-4 h-4 border border-ok/40 bg-ok-bg" />
+              <span className="text-ink-soft">Libre (clic para reservar)</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded border-2 border-red-300 bg-red-50"></div>
-              <span className="text-sm text-slate-600">Ocupada</span>
+            <div className="flex items-center gap-2.5">
+              <span className="w-4 h-4 border border-bad/40 bg-bad-bg" />
+              <span className="text-ink-soft">Ocupada</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded border-2 border-slate-300 bg-slate-100"></div>
-              <span className="text-sm text-slate-600">Pasada</span>
+            <div className="flex items-center gap-2.5">
+              <span className="w-4 h-4 border border-rule bg-paper-soft" />
+              <span className="text-ink-soft">Pasada</span>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { Button } from './Button';
 
 export interface EmptyStateProps {
@@ -6,17 +6,31 @@ export interface EmptyStateProps {
   description?: string;
   icon?: React.ReactNode;
   action?: { label: string; onClick: () => void };
+  eyebrow?: string;
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon, action }) => (
-  <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-    {icon && <div className="mb-4 text-4xl">{icon}</div>}
-    <h3 className="text-lg font-semibold text-slate-900 mb-2">{title}</h3>
-    {description && <p className="text-slate-500 mb-6 max-w-sm">{description}</p>}
-    {action && (
-      <Button variant="primary" onClick={action.onClick}>
-        {action.label}
-      </Button>
-    )}
+export const EmptyState: React.FC<EmptyStateProps> = ({
+  title,
+  description,
+  icon,
+  action,
+  eyebrow = 'Sin registros',
+}) => (
+  <div className="border border-dashed border-rule bg-paper-soft/30 px-8 py-16 text-center">
+    <div className="font-mono text-[11px] uppercase tracking-wide text-ink-mute">
+      {eyebrow}
+    </div>
+    {icon ? <div className="mt-4 text-ink-mute flex justify-center">{icon}</div> : null}
+    <h3 className="mt-2 font-display text-2xl text-ink">{title}</h3>
+    {description ? (
+      <p className="mt-3 text-sm text-ink-soft max-w-md mx-auto leading-relaxed">{description}</p>
+    ) : null}
+    {action ? (
+      <div className="mt-6">
+        <Button variant="ink" onClick={action.onClick}>
+          {action.label}
+        </Button>
+      </div>
+    ) : null}
   </div>
 );

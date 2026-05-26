@@ -3,7 +3,16 @@
 import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/Button';
-import { Download, RefreshCw } from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  IconDot,
+  IconDownload,
+  IconChart,
+  IconCalendar,
+  IconAlert,
+  IconArrowRight,
+} from '@/components/icons';
 
 interface Block {
   id: string;
@@ -26,310 +35,218 @@ interface ReportRow {
 export default function ReportsPage() {
   const [user, setUser] = useState<any>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
-  
+
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [selectedBlockId, setSelectedBlockId] = useState('');
-  
+
   const [reportData, setReportData] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState('');
+  const [hasGenerated, setHasGenerated] = useState(false);
 
-  // Initialize dates (today and 7 days ago)
   useEffect(() => {
     const today = new Date();
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
     setToDate(today.toISOString().split('T')[0]);
     setFromDate(weekAgo.toISOString().split('T')[0]);
   }, []);
 
-  // Load user and blocks
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Get user
-        const meRes = await fetch('/api/auth/me');
-        if (meRes.ok) {
-          const userData = await meRes.json();
-          setUser(userData.user);
-        }
-
-        // Get blocks
-        const blocksRes = await fetch('/api/blocks');
-        if (blocksRes.ok) {
-          const blocksData = await blocksRes.json();
-          setBlocks(blocksData);
-        }
-      } catch (err) {
-        console.error('Error loading data:', err);
-      }
-    };
-
-    loadData();
+    (async () => {
+      const meRes = await fetch('/api/auth/me');
+      if (meRes.ok) setUser((await meRes.json()).user);
+      const b = await fetch('/api/blocks');
+      if (b.ok) setBlocks(await b.json());
+    })();
   }, []);
 
-  const handleGenerateReport = async () => {
+  const handleGenerate = async () => {
     setError('');
     setReportData([]);
-
-    if (!fromDate || !toDate) {
-      setError('Por favor selecciona ambas fechas');
-      return;
-    }
-
-    if (new Date(fromDate) > new Date(toDate)) {
-      setError('La fecha inicio no puede ser posterior a la fecha fin');
-      return;
-    }
+    setHasGenerated(false);
+    if (!fromDate || !toDate) return setError('Selecciona ambas fechas.');
+    if (new Date(fromDate) > new Date(toDate)) return setError('La fecha inicio no puede ser posterior a la fin.');
 
     setLoading(true);
-
     try {
-      const params = new URLSearchParams();
-      params.append('from', fromDate);
-      params.append('to', toDate);
-      params.append('format', 'json');
-      
-      if (selectedBlockId) {
-        params.append('blockId', selectedBlockId);
-      }
-
-      const response = await fetch(`/api/reports/occupancy?${params.toString()}`);
-
-      if (response.status === 404) {
-        setError('No hay datos disponibles para el período seleccionado');
-        setReportData([]);
-      } else if (response.ok) {
-        const data = await response.json();
-        setReportData(data);
+      const p = new URLSearchParams({ from: fromDate, to: toDate, format: 'json' });
+      if (selectedBlockId) p.set('blockId', selectedBlockId);
+      const res = await fetch(`/api/reports/occupancy?${p.toString()}`);
+      if (res.status === 404) {
+        setHasGenerated(true);
+      } else if (res.ok) {
+        setReportData(await res.json());
+        setHasGenerated(true);
       } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Error al generar el reporte');
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'Error al generar el reporte');
       }
-    } catch (err: any) {
-      setError('Error al cargar el reporte: ' + err.message);
+    } catch (e: any) {
+      setError('Error: ' + e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownloadCSV = async () => {
+  const handleDownload = async () => {
     setDownloading(true);
-
     try {
-      const params = new URLSearchParams();
-      params.append('from', fromDate);
-      params.append('to', toDate);
-      params.append('format', 'csv');
-      
-      if (selectedBlockId) {
-        params.append('blockId', selectedBlockId);
-      }
-
-      const response = await fetch(`/api/reports/occupancy?${params.toString()}`);
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
+      const p = new URLSearchParams({ from: fromDate, to: toDate, format: 'csv' });
+      if (selectedBlockId) p.set('blockId', selectedBlockId);
+      const res = await fetch(`/api/reports/occupancy?${p.toString()}`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `reporte-ocupacion-${fromDate}-${toDate}.csv`;
+        a.download = `ocupacion-${fromDate}-${toDate}.csv`;
         document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
+        URL.revokeObjectURL(url);
         document.body.removeChild(a);
       } else {
-        setError('Error al descargar el CSV');
+        setError('Error al descargar el CSV.');
       }
-    } catch (err: any) {
-      setError('Error al descargar: ' + err.message);
     } finally {
       setDownloading(false);
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('es-CO', {
+  const fmtDate = (s: string) =>
+    new Date(s).toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
-  };
 
   return (
-    <AppLayout role={user?.role || 'profesor'} userName={user?.name} showSeedBanner>
+    <AppLayout role={user?.role || 'profesor'} userName={user?.name}>
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Reporte de Ocupación</h1>
-          <p className="text-slate-600">
-            Genera reportes de uso de salones por período y bloque
+        <header className="mb-10 animate-rise">
+          <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-ink-mute mb-3">
+            <IconDot size={6} className="text-accent" />
+            <span>Reportería · Ocupación</span>
+          </div>
+          <h1 className="font-display text-5xl md:text-6xl leading-[0.95] text-ink">
+            Reporte de
+            <span className="italic text-accent"> ocupación</span>
+          </h1>
+          <p className="mt-4 max-w-xl text-ink-soft text-[15px] leading-relaxed">
+            Genera consolidados por período y bloque, exportables a CSV para análisis externo.
           </p>
-        </div>
+        </header>
 
-        {/* Filters Card */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Filtros</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            {/* From Date */}
+        {/* Filters */}
+        <div className="border border-rule bg-surface p-6 mb-8">
+          <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-4 inline-flex items-center gap-2">
+            <IconChart size={12} />
+            Parámetros del reporte
+          </div>
+          <div className="grid md:grid-cols-4 gap-5 items-end">
             <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">
-                Fecha Inicio
+              <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                Desde
               </label>
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="field"
               />
             </div>
-
-            {/* To Date */}
             <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">
-                Fecha Fin
+              <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                Hasta
               </label>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="field"
               />
             </div>
-
-            {/* Block Filter */}
             <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">
+              <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
                 Bloque
               </label>
               <select
                 value={selectedBlockId}
                 onChange={(e) => setSelectedBlockId(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="field"
               >
-                <option value="">Todos los bloques</option>
-                {blocks.map((block) => (
-                  <option key={block.id} value={block.id}>
-                    {block.name} ({block.code})
+                <option value="">Todos</option>
+                {blocks.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
                   </option>
                 ))}
               </select>
             </div>
-
-            {/* Generate Button */}
-            <div className="flex items-end">
-              <Button
-                onClick={handleGenerateReport}
-                disabled={loading}
-                className="w-full"
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw size={16} className="mr-2 animate-spin" />
-                    Generando...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw size={16} className="mr-2" />
-                    Generar Reporte
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button variant="ink" onClick={handleGenerate} isLoading={loading}>
+              <IconArrowRight size={14} />
+              Generar reporte
+            </Button>
           </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="p-4 bg-red-50 border border-red-300 rounded-lg text-red-900">
-              {error}
-            </div>
-          )}
         </div>
 
-        {/* Preview Table */}
-        {reportData.length > 0 && (
+        {error ? (
+          <div className="mb-6 px-4 py-3 border-l-2 border-bad bg-bad-bg text-bad text-sm inline-flex items-center gap-2.5">
+            <IconAlert size={16} />
+            {error}
+          </div>
+        ) : null}
+
+        {hasGenerated && reportData.length > 0 ? (
           <>
-            {/* Download Button */}
-            <div className="mb-6 flex gap-2">
-              <Button
-                onClick={handleDownloadCSV}
-                disabled={downloading}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {downloading ? (
-                  <>
-                    <RefreshCw size={16} className="mr-2 animate-spin" />
-                    Descargando...
-                  </>
-                ) : (
-                  <>
-                    <Download size={16} className="mr-2" />
-                    Descargar CSV
-                  </>
-                )}
+            <div className="flex items-end justify-between mb-4 border-y border-rule py-3">
+              <div className="flex items-center gap-4 text-sm">
+                <IconCalendar size={16} className="text-ink-soft" />
+                <span className="font-mono text-[12px] text-ink-soft uppercase tracking-wide">
+                  {fmtDate(fromDate)} → {fmtDate(toDate)}
+                </span>
+                <Badge variant="info">{reportData.length} registros</Badge>
+              </div>
+              <Button variant="secondary" onClick={handleDownload} isLoading={downloading}>
+                <IconDownload size={14} />
+                Descargar CSV
               </Button>
-              <span className="text-slate-600 text-sm self-center">
-                {reportData.length} registros encontrados
-              </span>
             </div>
 
-            {/* Table */}
-            <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+            <div className="border border-rule bg-surface overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">
-                        Fecha
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">
-                        Bloque
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">
-                        Salón
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">
-                        Código
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">
-                        Franja
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">
-                        Profesor
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">
-                        Materia
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">
-                        Grupo
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">
-                        Estado
-                      </th>
+                <table className="w-full text-sm">
+                  <thead className="bg-paper-soft border-b border-rule">
+                    <tr className="text-left text-ink-mute">
+                      <Th>Fecha</Th>
+                      <Th>Bloque</Th>
+                      <Th>Salón</Th>
+                      <Th>Código</Th>
+                      <Th>Franja</Th>
+                      <Th>Profesor</Th>
+                      <Th>Materia</Th>
+                      <Th>Grupo</Th>
+                      <Th>Estado</Th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-rule">
                     {reportData.map((row, idx) => (
-                      <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
-                        <td className="px-4 py-3 text-sm text-slate-900">
-                          {formatDate(row.fecha)}
+                      <tr key={idx}>
+                        <td className="px-3 py-2.5 font-mono text-[11px] text-ink-soft whitespace-nowrap">
+                          {fmtDate(row.fecha)}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-900">{row.bloque}</td>
-                        <td className="px-4 py-3 text-sm text-slate-900">{row.salon}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-900">
-                          {row.codigo}
+                        <td className="px-3 py-2.5 text-ink-soft">{row.bloque}</td>
+                        <td className="px-3 py-2.5 text-ink-soft">{row.salon}</td>
+                        <td className="px-3 py-2.5 font-mono text-ink">{row.codigo}</td>
+                        <td className="px-3 py-2.5 text-ink-soft">{row.franja}</td>
+                        <td className="px-3 py-2.5 text-ink-soft">{row.profesor}</td>
+                        <td className="px-3 py-2.5 text-ink">{row.materia}</td>
+                        <td className="px-3 py-2.5 font-mono text-[12px] text-ink-soft">
+                          {row.grupo}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-900">{row.franja}</td>
-                        <td className="px-4 py-3 text-sm text-slate-900">{row.profesor}</td>
-                        <td className="px-4 py-3 text-sm text-slate-900">{row.materia}</td>
-                        <td className="px-4 py-3 text-sm text-slate-900">{row.grupo}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className="inline-block px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-900">
-                            {row.estado}
-                          </span>
+                        <td className="px-3 py-2.5">
+                          <Badge variant="success">{row.estado}</Badge>
                         </td>
                       </tr>
                     ))}
@@ -338,26 +255,28 @@ export default function ReportsPage() {
               </div>
             </div>
           </>
-        )}
+        ) : null}
 
-        {/* Empty State */}
-        {reportData.length === 0 && !loading && !error && (
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-12 text-center">
-            <div className="text-slate-600">
-              Selecciona fechas y haz clic en &quot;Generar Reporte&quot; para ver los datos
-            </div>
-          </div>
-        )}
-
-        {/* No Data After Generation */}
-        {reportData.length === 0 && !loading && error === '' && (fromDate && toDate) && (
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-12 text-center">
-            <div className="text-slate-600">
-              No hay reservas confirmadas en el período seleccionado. No se puede generar el reporte.
-            </div>
-          </div>
-        )}
+        {!loading && !error && (!hasGenerated || reportData.length === 0) ? (
+          <EmptyState
+            eyebrow={hasGenerated ? 'Sin datos en el rango' : 'Sin generar'}
+            title={
+              hasGenerated
+                ? 'No hay reservas confirmadas en el período seleccionado.'
+                : 'Selecciona un rango y genera el reporte.'
+            }
+            description="El reporte incluye sólo reservas con estado confirmadas."
+          />
+        ) : null}
       </div>
     </AppLayout>
+  );
+}
+
+function Th({ children }: { children: React.ReactNode }) {
+  return (
+    <th className="px-3 py-3 font-mono text-[10px] uppercase tracking-wide font-medium whitespace-nowrap">
+      {children}
+    </th>
   );
 }

@@ -1,37 +1,41 @@
-import './globals.css'
-import type { Metadata } from 'next'
-import { Playfair_Display, Poppins } from 'next/font/google'
-import { ToastProvider } from '@/components/ui/Toast'
+import './globals.css';
+import type { Metadata } from 'next';
+import { Fraunces, Inter, JetBrains_Mono } from 'next/font/google';
+import { ToastProvider } from '@/components/ui/Toast';
 
-const playfairDisplay = Playfair_Display({
+const fraunces = Fraunces({
   subsets: ['latin'],
-  variable: '--font-playfair',
-  weight: ['400', '700', '900'],
-})
+  variable: '--font-display',
+  weight: ['400', '500', '600', '700', '800'],
+  style: ['normal', 'italic'],
+});
 
-const poppins = Poppins({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-poppins',
+  variable: '--font-sans',
   weight: ['300', '400', '500', '600', '700'],
-})
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  weight: ['400', '500', '600'],
+});
 
 export const metadata: Metadata = {
-  title: 'ClassSport | Gestión de Salones',
-  description: 'Plataforma de asignación de salones universitarios',
-}
+  title: 'ClassSport · Gestión de Salones Universitarios',
+  description: 'Plataforma institucional para asignación de salones académicos',
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${playfairDisplay.variable} ${poppins.variable}`}>
-      <body className="bg-slate-50 min-h-screen">
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+    <html
+      lang="es"
+      className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className="min-h-screen antialiased">
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
-  )
+  );
 }

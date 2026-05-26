@@ -1,36 +1,50 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ──────────────────────────────────────────────────────────────────────────
+   ClassSport · Editorial Academic
+   Warm paper bg, institutional indigo anchor, accent gold for callouts.
+   ────────────────────────────────────────────────────────────────────────── */
+
 :root {
-  --bg-main: #F8FAFC;
-  --bg-card: #FFFFFF;
-  --bg-alt: #F1F5F9;
-  --primary: #1D4ED8;
-  --primary-dark: #1E40AF;
-  --primary-light: #3B82F6;
-  --text-primary: #0F172A;
-  --text-secondary: #64748B;
-  --success: #16A34A;
-  --success-bg: #F0FDF4;
-  --danger: #DC2626;
-  --danger-bg: #FEF2F2;
-  --warning: #D97706;
-  --warning-bg: #FFFBEB;
-  --info: #0EA5E9;
-  --info-bg: #F0F9FF;
-  --slot-free: #16A34A;
-  --slot-free-bg: #F0FDF4;
-  --slot-occupied: #DC2626;
+  /* Paper & ink */
+  --paper:      #FAF7F0;
+  --paper-soft: #F3EFE6;
+  --surface:    #FFFFFF;
+  --ink:        #14181D;
+  --ink-soft:   #4B5563;
+  --ink-mute:   #8A8F96;
+  --rule:       #E4DED1;
+  --rule-soft:  #EFEAE0;
+
+  /* Brand */
+  --brand:        #1E3A8A;   /* deep institutional indigo */
+  --brand-soft:   #2541A8;
+  --brand-tint:   #E8ECF7;
+  --accent:       #B45309;   /* academic gold */
+  --accent-soft:  #FEF3E2;
+
+  /* Status */
+  --ok:        #15803D;
+  --ok-bg:     #ECFDF3;
+  --warn:      #B45309;
+  --warn-bg:   #FEF3E2;
+  --bad:       #B91C1C;
+  --bad-bg:    #FEF2F2;
+
+  /* Slots */
+  --slot-free:        #15803D;
+  --slot-free-bg:     #ECFDF3;
+  --slot-occupied:    #B91C1C;
   --slot-occupied-bg: #FEF2F2;
-  --slot-past: #94A3B8;
-  --slot-past-bg: #F8FAFC;
-  --seed-bg: #FEF3C7;
-  --seed-text: #92400E;
-  --seed-border: #F59E0B;
-  --border: #E2E8F0;
+  --slot-past:        #9CA3AF;
+  --slot-past-bg:     #F5F2EA;
+
+  /* Seed banner */
+  --seed-bg:     #FDF6E3;
+  --seed-text:   #92400E;
+  --seed-border: #D9A441;
 }
 
 * {
@@ -40,57 +54,118 @@
 }
 
 html {
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   scroll-behavior: smooth;
-  font-family: var(--font-poppins, 'Inter'), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 body {
-  background-color: var(--bg-main);
-  color: var(--text-primary);
-  font-family: var(--font-poppins, 'Inter'), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  line-height: 1.5;
+  background-color: var(--paper);
+  color: var(--ink);
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(20,24,29,0.04) 1px, transparent 0);
+  background-size: 28px 28px;
+  background-position: -14px -14px;
 }
 
-h1, h2, h3 {
-  font-weight: 700;
-  font-family: var(--font-playfair, 'Inter'), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+.font-display {
+  font-family: var(--font-display), 'Iowan Old Style', Georgia, serif;
+  font-variation-settings: 'opsz' 60, 'SOFT' 0;
+  letter-spacing: -0.018em;
+  font-feature-settings: 'kern', 'liga', 'dlig', 'ss01';
 }
 
-h1 {
-  font-size: 4rem;
-  letter-spacing: -0.02em;
+.font-mono {
+  font-family: var(--font-mono), 'SF Mono', Menlo, monospace;
 }
 
-@media (max-width: 768px) {
-  h1 {
-    font-size: 2.5rem;
-  }
+/* Headings: prose serif when explicitly opted in (h-display utility),
+   otherwise sans by default to avoid overriding cards/labels. */
+.h-display {
+  font-family: var(--font-display), Georgia, serif;
+  font-variation-settings: 'opsz' 72, 'SOFT' 0;
+  letter-spacing: -0.022em;
+  color: var(--ink);
 }
 
-::-webkit-scrollbar {
-  width: 8px;
+/* Editorial rule */
+.rule {
+  height: 1px;
+  background: var(--rule);
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+.rule-strong {
+  height: 1px;
+  background: var(--ink);
+  opacity: 0.85;
 }
 
+/* Inputs */
+.field {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  border-bottom-width: 1.5px;
+  font: inherit;
+  color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 1px 0 var(--brand);
+}
+
+.field::placeholder {
+  color: var(--ink-mute);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(168, 85, 247, 0.5);
-  border-radius: 4px;
+  background: rgba(20, 24, 29, 0.18);
+  border-radius: 8px;
+  border: 2px solid var(--paper);
 }
+::-webkit-scrollbar-thumb:hover { background: rgba(20, 24, 29, 0.36); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(168, 85, 247, 0.8);
-}
-
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
 
+/* Subtle entrance for cards / hero */
+@keyframes editorial-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-rise {
+  animation: editorial-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Diagonal ribbon for status */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid currentColor;
+  color: var(--ink-soft);
+  background: var(--surface);
+}

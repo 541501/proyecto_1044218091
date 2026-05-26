@@ -1,30 +1,37 @@
-import React from 'react';
+import * as React from 'react';
+
+type Variant = 'default' | 'success' | 'danger' | 'warning' | 'info' | 'brand' | 'accent';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'success' | 'danger' | 'warning' | 'info';
+  variant?: Variant;
   children: React.ReactNode;
 }
 
-export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
-  ({ variant = 'default', children, className = '', ...props }, ref) => {
-    const variants = {
-      default: 'bg-slate-100 text-slate-800',
-      success: 'bg-green-100 text-green-800',
-      danger: 'bg-red-100 text-red-800',
-      warning: 'bg-amber-100 text-amber-800',
-      info: 'bg-blue-100 text-blue-800',
-    };
+const variants: Record<Variant, string> = {
+  default: 'text-ink-soft border-rule bg-surface',
+  success: 'text-ok border-ok/40 bg-ok-bg',
+  danger: 'text-bad border-bad/40 bg-bad-bg',
+  warning: 'text-warn border-warn/40 bg-warn-bg',
+  info: 'text-brand border-brand/40 bg-brand-tint',
+  brand: 'text-paper border-brand bg-brand',
+  accent: 'text-accent border-accent/40 bg-accent-soft',
+};
 
-    return (
-      <div
-        ref={ref}
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className}`}
-        {...props}
-      >
-        {children}
-      </div>
-    );
-  }
+export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
+  ({ variant = 'default', children, className = '', ...props }, ref) => (
+    <div
+      ref={ref}
+      className={[
+        'inline-flex items-center gap-1.5 px-2 py-0.5 border',
+        'font-mono text-[11px] uppercase tracking-wide',
+        variants[variant],
+        className,
+      ].join(' ')}
+      {...props}
+    >
+      {children}
+    </div>
+  ),
 );
 
 Badge.displayName = 'Badge';
