@@ -34,7 +34,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [systemMode, setSystemMode] = useState<'seed' | 'live' | null>(null);
   const [dashboardData, setDashboardData] = useState<any>(null);
 
   useEffect(() => {
@@ -44,10 +43,6 @@ export default function DashboardPage() {
         if (!meRes.ok) throw new Error('Not authenticated');
         const meData = await meRes.json();
         setUser(meData.user);
-
-        const modeRes = await fetch('/api/system/mode');
-        const modeData = await modeRes.json();
-        setSystemMode(modeData.mode);
 
         const dashRes = await fetch('/api/dashboard');
         const dashData = await dashRes.json();
@@ -77,7 +72,7 @@ export default function DashboardPage() {
   });
 
   return (
-    <AppLayout role={user.role} userName={user.name || user.email} showSeedBanner={systemMode === 'seed'}>
+    <AppLayout role={user.role} userName={user.name || user.email}>
       <div className="max-w-6xl mx-auto">
         {/* Editorial header */}
         <header className="mb-12 animate-rise">

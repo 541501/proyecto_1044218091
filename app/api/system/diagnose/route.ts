@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSystemMode, listUsers, getBlocks, getSlots, getRooms } from '@/lib/dataService';
+import { listUsers, getBlocks, getSlots, getRooms } from '@/lib/dataService';
 import { getAppliedMigrations, getPendingMigrations } from '@/lib/pgMigrate';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
@@ -32,7 +32,6 @@ async function pingSupabase(): Promise<'connected' | 'unreachable' | 'not_config
 
 export async function GET(_req: NextRequest) {
   try {
-    const mode = await getSystemMode();
     const supabase = await pingSupabase();
 
     let appliedMigrations: string[] = [];
@@ -48,20 +47,16 @@ export async function GET(_req: NextRequest) {
       blocks = 0,
       slots = 0,
       rooms = 0;
-
-    if (mode === 'live') {
-      try {
-        users = (await listUsers()).length;
-        blocks = (await getBlocks()).length;
-        slots = (await getSlots()).length;
-        rooms = (await getRooms()).length;
-      } catch (err) {
-        console.warn('[diagnose] Could not fetch counts:', err);
-      }
+    try {
+      users = (await listUsers()).length;
+      blocks = (await getBlocks()).length;
+      slots = (await getSlots()).length;
+      rooms = (await getRooms()).length;
+    } catch (err) {
+      console.warn('[diagnose] Could not fetch counts:', err);
     }
 
     return NextResponse.json({
-      mode,
       supabase,
       jwt: envPresent('JWT_SECRET', 'ClassSport_SUPABASE_JWT_SECRET') ? 'configured' : 'not_configured',
       database_url: envPresent(

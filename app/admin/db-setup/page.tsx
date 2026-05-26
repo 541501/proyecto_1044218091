@@ -7,17 +7,9 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import {
-  IconShield,
-  IconAlert,
-  IconCheck,
-  IconDot,
-  IconArchive,
-  IconHash,
-} from '@/components/icons';
+import { IconAlert, IconCheck, IconDot, IconArchive, IconHash } from '@/components/icons';
 
 interface DiagnosticData {
-  mode: 'seed' | 'live';
   supabase: 'connected' | 'unreachable' | 'not_configured';
   jwt: 'configured' | 'not_configured';
   database_url: string;
@@ -104,7 +96,7 @@ export default function DbSetupPage() {
   const statusOk = diagnostic.supabase === 'connected' && diagnostic.jwt === 'configured';
 
   return (
-    <AppLayout role="admin" userName={user.name || user.email} showSeedBanner={diagnostic.mode === 'seed'}>
+    <AppLayout role="admin" userName={user.name || user.email}>
       <div className="max-w-6xl mx-auto">
         <header className="mb-10 animate-rise">
           <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-ink-mute mb-3">
@@ -116,7 +108,7 @@ export default function DbSetupPage() {
             <span className="italic text-accent"> técnica</span>
           </h1>
           <p className="mt-4 max-w-xl text-ink-soft text-[15px] leading-relaxed">
-            Diagnóstico de conexiones, control de migrations y bootstrap inicial del sistema.
+            Diagnóstico de conexiones y control de migrations.
           </p>
         </header>
 
@@ -125,12 +117,7 @@ export default function DbSetupPage() {
           <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-3">
             Estado del sistema
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-rule border border-rule">
-            <StatusCell
-              label="Modo"
-              value={diagnostic.mode === 'live' ? 'Live · Postgres' : 'Seed · Desarrollo'}
-              tone={diagnostic.mode === 'live' ? 'success' : 'warning'}
-            />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-rule border border-rule">
             <StatusCell
               label="Supabase"
               value={diagnostic.supabase}
@@ -212,52 +199,38 @@ export default function DbSetupPage() {
           </div>
         </section>
 
-        {/* Bootstrap action */}
-        {diagnostic.mode === 'seed' ? (
-          <section className="border-l-4 border-accent bg-accent-soft/60 p-6">
-            <div className="font-mono text-[10px] uppercase tracking-wide text-accent mb-2 inline-flex items-center gap-2">
-              <IconShield size={12} />
-              Bootstrap requerido
-            </div>
-            <h2 className="font-display text-3xl text-ink leading-tight">
-              Aplica el bootstrap inicial
-            </h2>
-            <p className="text-ink-soft mt-3 max-w-xl text-sm leading-relaxed">
-              Aplicará las migrations pendientes, creará los 3 bloques, las 6 franjas horarias, los 4 salones de demo y el usuario administrador inicial.
-            </p>
+        {/* Status panel */}
+        <section
+          className={[
+            'border-l-4 p-6',
+            statusOk ? 'border-ok bg-ok-bg/60' : 'border-bad bg-bad-bg/60',
+          ].join(' ')}
+        >
+          <div
+            className={[
+              'font-mono text-[10px] uppercase tracking-wide mb-2 inline-flex items-center gap-2',
+              statusOk ? 'text-ok' : 'text-bad',
+            ].join(' ')}
+          >
+            <IconCheck size={12} />
+            {statusOk ? 'Sistema activo' : 'Atención requerida'}
+          </div>
+          <h2 className="font-display text-3xl text-ink leading-tight">
+            {statusOk ? 'Todas las conexiones operativas' : 'Hay servicios faltantes'}
+          </h2>
+          <p className="text-ink-soft mt-3 max-w-xl text-sm">
+            {statusOk
+              ? 'Supabase, JWT y la URL de Postgres responden con normalidad.'
+              : 'Revisa el panel de estado y la configuración de variables de entorno.'}
+          </p>
+          {diagnostic.migrations.pending > 0 ? (
             <div className="mt-5">
-              <Button
-                variant="ink"
-                onClick={() => setShowSecretModal(true)}
-                isLoading={bootstrapping}
-              >
-                {bootstrapping ? 'Ejecutando…' : 'Ejecutar bootstrap'}
+              <Button variant="ink" onClick={() => setShowSecretModal(true)}>
+                Aplicar migrations pendientes
               </Button>
             </div>
-          </section>
-        ) : (
-          <section className="border-l-4 border-ok bg-ok-bg/60 p-6">
-            <div className="font-mono text-[10px] uppercase tracking-wide text-ok mb-2 inline-flex items-center gap-2">
-              <IconCheck size={12} />
-              Sistema activo
-            </div>
-            <h2 className="font-display text-3xl text-ink leading-tight">
-              Modo live · Postgres activo
-            </h2>
-            <p className="text-ink-soft mt-3 max-w-xl text-sm">
-              {statusOk
-                ? 'Todas las conexiones están operativas. Puedes seguir con la gestión normal.'
-                : 'Hay servicios marcados como faltantes. Revisa la sección de estado.'}
-            </p>
-            {diagnostic.migrations.pending > 0 ? (
-              <div className="mt-5">
-                <Button variant="ink" onClick={() => setShowSecretModal(true)}>
-                  Aplicar migrations pendientes
-                </Button>
-              </div>
-            ) : null}
-          </section>
-        )}
+          ) : null}
+        </section>
 
         {/* Secret Modal */}
         <Modal
