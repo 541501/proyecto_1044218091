@@ -91,21 +91,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, userName }) => {
           className={[
             'flex items-center gap-3 px-3 py-2.5 text-sm transition-colors group relative',
             active
-              ? 'bg-brand text-paper'
-              : 'text-ink-soft hover:text-brand hover:bg-brand-tint',
+              ? 'bg-accent text-[#0B1538]'
+              : 'text-ink-soft hover:text-ink hover:bg-paper-soft',
           ].join(' ')}
         >
           <span
             className={[
               'font-mono text-[10px] w-5',
-              active ? 'text-paper/70' : 'text-ink-mute group-hover:text-brand/70',
+              active ? 'text-[#0B1538]/70' : 'text-ink-mute group-hover:text-ink-soft',
             ].join(' ')}
           >
             {item.hint}
           </span>
-          <span className={active ? 'text-paper' : ''}>{item.icon}</span>
+          <span className={active ? 'text-[#0B1538]' : ''}>{item.icon}</span>
           <span className="flex-1">{item.label}</span>
-          {active ? <IconDot size={6} className="text-accent" /> : null}
+          {active ? <IconDot size={6} className="text-[#0B1538]" /> : null}
         </Link>
       </li>
     );
