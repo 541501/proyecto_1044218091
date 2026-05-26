@@ -115,7 +115,7 @@ export default function LoginPage() {
           className="px-6 lg:px-14 py-12 lg:py-20 flex items-center"
         >
           <div className="w-full max-w-md mx-auto">
-            <div className="bg-surface border border-rule border-t-[4px] border-t-brand shadow-[0_20px_60px_-20px_rgba(91,121,255,0.35)]">
+            <div className="bg-surface border border-rule border-t-[4px] border-t-accent shadow-[0_20px_60px_-20px_rgba(229,180,84,0.30)]">
               <div className="px-8 pt-8 pb-6">
                 <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
                   Acceso
@@ -177,7 +177,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="group w-full py-3 px-4 bg-brand text-paper inline-flex items-center justify-between gap-2 transition-colors hover:bg-brand-soft disabled:opacity-50"
+                  className="group w-full py-3 px-4 bg-accent text-[#0B1538] inline-flex items-center justify-between gap-2 transition-colors hover:bg-accent-deep disabled:opacity-50 cursor-pointer"
                 >
                   <span className="font-mono text-[11px] uppercase tracking-wide">
                     {isLoading ? 'Verificando…' : 'Ingresar al sistema'}
