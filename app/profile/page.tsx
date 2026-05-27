@@ -38,7 +38,13 @@ function ProfileContent() {
   };
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout | undefined;
+    
+    // Timeout de 5 segundos para mostrar opción de salir
+    timeoutId = setTimeout(() => {
+      setLoadingTimeout(true);
+    }, 5000);
+
     (async () => {
       try {
         const res = await fetch('/api/auth/me', { credentials: 'include' });
@@ -48,18 +54,15 @@ function ProfileContent() {
         if (data.user.must_change_password) {
           addToast('Debes cambiar tu contraseña antes de continuar', 'warning');
         }
-        clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
       } catch (err) {
-        clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
       }
     })();
     
-    // Timeout de 5 segundos para mostrar opción de salir
-    timeoutId = setTimeout(() => {
-      setLoadingTimeout(true);
-    }, 5000);
-    
-    return () => clearTimeout(timeoutId);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [router, addToast]);
 
   const handleChangePassword = async (e: React.FormEvent) => {
