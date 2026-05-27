@@ -65,12 +65,13 @@ export async function middleware(req: NextRequest) {
 
     return NextResponse.next();
   } catch (err) {
-    // Token inválido: limpiar la cookie
+    // Token inválido: limpiar la cookie y redirigir
+    const redirectUrl = new URL('/login', req.url);
     const response = pathname.startsWith('/api/') 
       ? NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      : NextResponse.redirect(new URL('/login', req.url));
+      : NextResponse.redirect(redirectUrl);
     
-    response.headers.set('Set-Cookie', 'auth-token=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict');
+    response.headers.append('Set-Cookie', 'auth-token=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict');
     return response;
   }
 }
