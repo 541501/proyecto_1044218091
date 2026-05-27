@@ -25,7 +25,7 @@ async function createUser(email, name, password, role = 'profesor') {
       .from('users')
       .insert([
         {
-          email,
+          email: email.toLowerCase(),
           name,
           password_hash: passwordHash,
           role,

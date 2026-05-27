@@ -5,7 +5,7 @@ import { z } from 'zod';
 // ============================================================================
 
 export const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.string().email('Email inválido').transform(e => e.toLowerCase()),
   password: z.string().min(1, 'Contraseña requerida'),
 });
 
@@ -26,7 +26,7 @@ export const changePasswordSchema = z.object({
 
 export const createUserSchema = z.object({
   name: z.string().min(1, 'Nombre requerido').max(100),
-  email: z.string().email('Email inválido'),
+  email: z.string().email('Email inválido').transform(e => e.toLowerCase()),
   role: z.enum(['profesor', 'coordinador', 'admin']),
 });
 

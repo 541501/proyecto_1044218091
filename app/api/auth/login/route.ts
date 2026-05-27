@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     console.log('[login] Attempting login for email:', email);
 
     // Get user by email
-    const user = await getUserByEmail(email);
+    const user = await getUserByEmail(email.toLowerCase());
     console.log('[login] User found:', user ? `${user.email} (${user.role})` : 'Not found');
     if (!user) {
       // Generic error message (never reveal whether email exists)

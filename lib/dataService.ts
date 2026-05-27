@@ -46,7 +46,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   const { data, error } = await supabase
     .from('users')
     .select('*')
-    .eq('email', email)
+    .eq('email', email.toLowerCase())
     .single();
 
   if (error) {
@@ -93,7 +93,7 @@ export async function createUser(
     .insert([
       {
         name: data.name,
-        email: data.email,
+        email: data.email.toLowerCase(),
         password_hash: passwordHash,
         role: data.role,
         is_active: true,
