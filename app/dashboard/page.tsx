@@ -40,6 +40,11 @@ export default function DashboardPage() {
   const handleEmergencyLogout = async () => {
     setIsLoggingOut(true);
     try {
+      // Clear sessionStorage
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('currentUser');
+      }
+      
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
@@ -54,29 +59,53 @@ export default function DashboardPage() {
   useEffect(() => {
     (async () => {
       try {
-        console.log('[dashboard] Fetching user data...');
-        
-        // Fetch con timeout de 10 segundos
-        const meController = new AbortController();
-        const meTimeoutId = setTimeout(() => meController.abort(), 10000);
-        
-        const meRes = await fetch('/api/auth/me', { 
-          credentials: 'include',
-          signal: meController.signal 
-        });
-        clearTimeout(meTimeoutId);
-        
-        console.log('[dashboard] /api/auth/me response:', meRes.status);
-        
-        if (!meRes.ok) {
-          const errorData = await meRes.json().catch(() => ({}));
-          console.error('[dashboard] Auth error:', errorData);
-          throw new Error(errorData.error || 'Not authenticated');
+        console.log('[dashboard] Loading user data...');
+        let userData = null;
+
+        // First, try to get user from sessionStorage (just logged in)
+        if (typeof window !== 'undefined') {
+          const storedUser = sessionStorage.getItem('currentUser');
+          if (storedUser) {
+            console.log('[dashboard] User found in sessionStorage');
+            userData = JSON.parse(storedUser);
+            sessionStorage.removeItem('currentUser'); // Remove after using
+            
+            // Check if user must change password
+            if (userData.must_change_password) {
+              console.log('[dashboard] User must change password');
+              router.push('/profile?action=change-password');
+              return;
+            }
+          }
         }
-        
-        const meData = await meRes.json();
-        console.log('[dashboard] User data:', meData.user?.email);
-        setUser(meData.user);
+
+        // If not in sessionStorage, fetch from server
+        if (!userData) {
+          console.log('[dashboard] Fetching user from server...');
+          const meController = new AbortController();
+          const meTimeoutId = setTimeout(() => meController.abort(), 10000);
+          
+          const meRes = await fetch('/api/auth/me', { 
+            credentials: 'include',
+            signal: meController.signal 
+          });
+          clearTimeout(meTimeoutId);
+          
+          console.log('[dashboard] /api/auth/me response:', meRes.status);
+          
+          if (!meRes.ok) {
+            const errorData = await meRes.json().catch(() => ({}));
+            console.error('[dashboard] Auth error:', errorData);
+            throw new Error(errorData.error || 'Not authenticated');
+          }
+          
+          const meData = await meRes.json();
+          console.log('[dashboard] User data received from server:', meData.user?.email);
+          userData = meData.user;
+        }
+
+        setUser(userData);
+        console.log('[dashboard] User set successfully');
 
         // Try to fetch dashboard data, but don't fail if it doesn't exist
         try {

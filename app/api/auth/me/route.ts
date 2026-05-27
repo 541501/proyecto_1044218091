@@ -7,6 +7,12 @@ async function handleMe(req: NextRequest, user: any) {
   try {
     console.log('[me] Request received from user:', user.userId, user.email);
     
+    // Validate userId exists
+    if (!user.userId) {
+      console.error('[me] No userId in token');
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
     const fullUser = await getUserById(user.userId);
     
     if (!fullUser) {

@@ -29,6 +29,11 @@ function ProfileContent() {
 
   const handleLogout = async () => {
     try {
+      // Clear sessionStorage
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('currentUser');
+      }
+      
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
@@ -62,35 +67,52 @@ function ProfileContent() {
     (async () => {
       try {
         console.log('[profile] Fetching user data...');
-        const controller = new AbortController();
-        fetchTimeoutId = setTimeout(() => {
-          console.log('[profile] Aborting fetch (timeout)');
-          controller.abort();
-        }, 15000);
         
-        const res = await fetch('/api/auth/me', { 
-          credentials: 'include',
-          signal: controller.signal 
-        });
-        clearTimeout(fetchTimeoutId);
-        
-        if (!res.ok) {
-          if (isMounted) {
-            console.log('[profile] Fetch failed with status:', res.status);
-            if (res.status === 401 || res.status === 403) {
-              router.push('/login');
-            }
+        // First, try to get user from sessionStorage (just logged in)
+        let userData = null;
+        if (typeof window !== 'undefined') {
+          const storedUser = sessionStorage.getItem('currentUser');
+          if (storedUser) {
+            console.log('[profile] User found in sessionStorage');
+            userData = JSON.parse(storedUser);
+            sessionStorage.removeItem('currentUser'); // Remove after using
           }
-          return;
         }
         
-        const data = await res.json();
-        if (isMounted) {
+        // If not in sessionStorage, fetch from server
+        if (!userData) {
+          const controller = new AbortController();
+          fetchTimeoutId = setTimeout(() => {
+            console.log('[profile] Aborting fetch (timeout)');
+            controller.abort();
+          }, 15000);
+          
+          const res = await fetch('/api/auth/me', { 
+            credentials: 'include',
+            signal: controller.signal 
+          });
+          clearTimeout(fetchTimeoutId);
+          
+          if (!res.ok) {
+            if (isMounted) {
+              console.log('[profile] Fetch failed with status:', res.status);
+              if (res.status === 401 || res.status === 403) {
+                router.push('/login');
+              }
+            }
+            return;
+          }
+          
+          const data = await res.json();
+          userData = data.user;
+        }
+        
+        if (isMounted && userData) {
           console.log('[profile] User data loaded successfully');
-          setUser(data.user);
+          setUser(userData);
           if (autoRedirectId) clearTimeout(autoRedirectId);
           if (timeoutId) clearTimeout(timeoutId);
-          if (data.user.must_change_password) {
+          if (userData.must_change_password) {
             addToast('Debes cambiar tu contraseña antes de continuar', 'warning');
           }
         }

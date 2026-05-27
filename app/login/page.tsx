@@ -37,9 +37,14 @@ export default function LoginPage() {
       }
 
       const loginData = await res.json();
-      console.log('[login] Login successful, token received');
+      console.log('[login] Login successful, storing user data');
 
-      // Wait longer to ensure cookie is set
+      // Store user in sessionStorage to avoid extra fetch
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('currentUser', JSON.stringify(loginData.user));
+      }
+
+      // Wait for cookie to be set
       await new Promise(resolve => setTimeout(resolve, 500));
       
       console.log('[login] Redirecting to dashboard...');
