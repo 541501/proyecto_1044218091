@@ -55,11 +55,11 @@ export default function AdminAuditPage() {
 
   useEffect(() => {
     (async () => {
-      const meRes = await fetch('/api/auth/me');
+      const meRes = await fetch('/api/auth/me', { credentials: 'include' });
       if (meRes.ok) setUser((await meRes.json()).user);
       else router.replace('/login');
     })();
-  }, [router]);
+  }, [router]);}
 
   useEffect(() => {
     if (!month) return;
@@ -70,7 +70,7 @@ export default function AdminAuditPage() {
         const p = new URLSearchParams({ month });
         if (entityFilter) p.set('entity', entityFilter);
         if (operationFilter) p.set('operation', operationFilter);
-        const res = await fetch(`/api/audit?${p.toString()}`);
+      const res = await fetch(`/api/audit?${p.toString()}`, { credentials: 'include' });
         if (res.ok) setEntries(await res.json());
         else {
           const data = await res.json().catch(() => ({}));

@@ -39,12 +39,12 @@ export default function DashboardPage() {
   useEffect(() => {
     (async () => {
       try {
-        const meRes = await fetch('/api/auth/me');
+        const meRes = await fetch('/api/auth/me', { credentials: 'include' });
         if (!meRes.ok) throw new Error('Not authenticated');
         const meData = await meRes.json();
         setUser(meData.user);
 
-        const dashRes = await fetch('/api/dashboard');
+        const dashRes = await fetch('/api/dashboard', { credentials: 'include' });
         const dashData = await dashRes.json();
         setDashboardData(dashData.data ?? dashData);
       } catch {

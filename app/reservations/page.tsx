@@ -69,7 +69,7 @@ function ReservationsContent() {
     (async () => {
       try {
         setLoading(true);
-        const meRes = await fetch('/api/auth/me');
+        const meRes = await fetch('/api/auth/me', { credentials: 'include' });
         const me = meRes.ok ? (await meRes.json()).user : null;
         setUser(me);
         const endpoint =

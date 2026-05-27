@@ -28,7 +28,7 @@ function ProfileContent() {
 
   useEffect(() => {
     (async () => {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
       if (!res.ok) return router.push('/login');
       const data = await res.json();
       setUser(data.user);
@@ -50,6 +50,7 @@ function ProfileContent() {
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(body),
       });
       if (!res.ok) {

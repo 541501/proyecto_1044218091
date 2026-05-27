@@ -9,7 +9,7 @@ export default function HomePage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
         router.push(res.ok ? '/dashboard' : '/login');
       } catch {
         router.push('/login');

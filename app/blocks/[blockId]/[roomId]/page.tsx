@@ -58,11 +58,11 @@ export default function RoomDetailsPage({
     (async () => {
       try {
         setLoading(true);
-        const meRes = await fetch('/api/auth/me');
+        const meRes = await fetch('/api/auth/me', { credentials: 'include' });
         if (meRes.ok) setUser((await meRes.json()).user ?? null);
-        const roomRes = await fetch(`/api/rooms/${params.roomId}`);
+        const roomRes = await fetch(`/api/rooms/${params.roomId}`, { credentials: 'include' });
         if (roomRes.ok) setRoom(await roomRes.json());
-        const calRes = await fetch(`/api/rooms/${params.roomId}/calendar?weekStart=${currentWeekStart}`);
+        const calRes = await fetch(`/api/rooms/${params.roomId}/calendar?weekStart=${currentWeekStart}`, { credentials: 'include' });
         if (calRes.ok) setCalendar(await calRes.json());
       } finally {
         setLoading(false);

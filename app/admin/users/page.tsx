@@ -66,13 +66,13 @@ export default function AdminUsersPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const refresh = async () => {
-    const r = await fetch('/api/users');
+    const r = await fetch('/api/users', { credentials: 'include' });
     if (r.ok) setUsers(await r.json());
   };
 
   useEffect(() => {
     (async () => {
-      const meRes = await fetch('/api/auth/me');
+      const meRes = await fetch('/api/auth/me', { credentials: 'include' });
       if (!meRes.ok) return router.replace('/login');
       const userData = (await meRes.json()).user;
       if (userData?.role !== 'admin') return router.replace('/dashboard');
@@ -98,6 +98,7 @@ export default function AdminUsersPage() {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ name: newName.trim(), email: newEmail.trim(), role: newRole }),
       });
       if (res.ok) {
@@ -146,6 +147,7 @@ export default function AdminUsersPage() {
       const res = await fetch(`/api/users/${editTarget.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           name: editName.trim(),
           role: editRole,
@@ -169,6 +171,7 @@ export default function AdminUsersPage() {
     const res = await fetch(`/api/users/${u.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ is_active: !u.is_active }),
     });
     if (res.ok) {
@@ -190,6 +193,7 @@ export default function AdminUsersPage() {
     try {
       const res = await fetch(`/api/users/${deleteTarget.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       if (res.ok) {
         setOpenDeleteConfirm(false);

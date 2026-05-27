@@ -38,14 +38,14 @@ export default function DbSetupPage() {
   const [secretInput, setSecretInput] = useState('');
 
   const loadDiagnostic = async () => {
-    const diagRes = await fetch('/api/system/diagnose');
+    const diagRes = await fetch('/api/system/diagnose', { credentials: 'include' });
     if (diagRes.ok) setDiagnostic(await diagRes.json());
   };
 
   useEffect(() => {
     (async () => {
       try {
-        const meRes = await fetch('/api/auth/me');
+        const meRes = await fetch('/api/auth/me', { credentials: 'include' });
         if (!meRes.ok) throw new Error('Not authenticated');
         const userData = (await meRes.json()).user;
         if (userData?.role !== 'admin') return router.push('/dashboard');

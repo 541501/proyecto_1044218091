@@ -23,15 +23,15 @@ export default function EditRoomPage({
 
   useEffect(() => {
     (async () => {
-      const me = await fetch('/api/auth/me');
+      const me = await fetch('/api/auth/me', { credentials: 'include' });
       if (!me.ok) return router.replace('/login');
       const userData = (await me.json()).user;
       if (userData?.role !== 'admin') return router.replace('/dashboard');
       setUser(userData);
 
       const [bRes, rRes] = await Promise.all([
-        fetch('/api/blocks'),
-        fetch(`/api/rooms/${params.id}`),
+        fetch('/api/blocks', { credentials: 'include' }),
+        fetch(`/api/rooms/${params.id}`, { credentials: 'include' }),
       ]);
       if (bRes.ok) setBlocks(await bRes.json());
       if (rRes.ok) setRoom(await rRes.json());

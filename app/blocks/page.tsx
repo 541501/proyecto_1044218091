@@ -18,12 +18,12 @@ export default function BlocksPage() {
   useEffect(() => {
     (async () => {
       try {
-        const meRes = await fetch('/api/auth/me');
+        const meRes = await fetch('/api/auth/me', { credentials: 'include' });
         if (meRes.ok) {
           const userData = await meRes.json();
           setUser(userData.user ?? userData);
         }
-        const blocksRes = await fetch(`/api/blocks?date=${selectedDate}`);
+        const blocksRes = await fetch(`/api/blocks?date=${selectedDate}`, { credentials: 'include' });
         if (blocksRes.ok) {
           setBlocks(await blocksRes.json());
         }

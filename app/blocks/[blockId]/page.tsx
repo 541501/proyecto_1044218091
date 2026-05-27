@@ -36,15 +36,15 @@ export default function BlockDetailsPage({
     (async () => {
       try {
         setLoading(true);
-        const meRes = await fetch('/api/auth/me');
+        const meRes = await fetch('/api/auth/me', { credentials: 'include' });
         if (meRes.ok) {
           setUser((await meRes.json()).user ?? null);
         }
 
         const [blocksRes, roomsRes, availRes] = await Promise.all([
-          fetch('/api/blocks?date=' + selectedDate),
-          fetch(`/api/rooms?blockId=${params.blockId}`),
-          fetch(`/api/blocks/${params.blockId}/availability?date=${selectedDate}`),
+          fetch('/api/blocks', { credentials: 'include' }),
+          fetch(`/api/rooms?blockId=${params.blockId}`, { credentials: 'include' }),
+          fetch(`/api/blocks/${params.blockId}/availability?date=${selectedDate}`, { credentials: 'include' }),
         ]);
 
         if (roomsRes.ok) setRooms(await roomsRes.json());

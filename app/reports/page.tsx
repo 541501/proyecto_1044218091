@@ -55,9 +55,9 @@ export default function ReportsPage() {
 
   useEffect(() => {
     (async () => {
-      const meRes = await fetch('/api/auth/me');
+      const meRes = await fetch('/api/auth/me', { credentials: 'include' });
       if (meRes.ok) setUser((await meRes.json()).user);
-      const b = await fetch('/api/blocks');
+      const b = await fetch('/api/blocks', { credentials: 'include' });
       if (b.ok) setBlocks(await b.json());
     })();
   }, []);
@@ -73,7 +73,7 @@ export default function ReportsPage() {
     try {
       const p = new URLSearchParams({ from: fromDate, to: toDate, format: 'json' });
       if (selectedBlockId) p.set('blockId', selectedBlockId);
-      const res = await fetch(`/api/reports/occupancy?${p.toString()}`);
+      const res = await fetch(`/api/reports/occupancy?${p.toString()}`, { credentials: 'include' });
       if (res.status === 404) {
         setHasGenerated(true);
       } else if (res.ok) {
