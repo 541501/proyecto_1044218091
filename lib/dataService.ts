@@ -43,17 +43,24 @@ export function clearSystemModeCache(): void {
 
 export async function getUserByEmail(email: string): Promise<User | null> {
   const supabase = getSupabaseAdmin();
+  const normalizedEmail = email.toLowerCase();
   const { data, error } = await supabase
     .from('users')
     .select('*')
-    .eq('email', email.toLowerCase())
+    .eq('email', normalizedEmail)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === 'PGRST116') {
+      console.log('[getUserByEmail] No user found for email:', normalizedEmail);
+      return null;
+    }
+    console.error('[getUserByEmail] Error fetching user:', normalizedEmail, error);
     throw error;
   }
+  console.log('[getUserByEmail] User found:', normalizedEmail);
   return data;
+}
 }
 
 export async function getUserById(id: string): Promise<User | null> {
@@ -96,10 +103,10 @@ export async function createUser(
     .select('*')
     .eq('email', normalizedEmail)
     .eq('is_active', false)
-    .single();
+    .maybeSingle(); // Use maybeSingle to avoid error if no result
 
+  // If we found an inactive user, reactivate it
   if (inactiveUser) {
-    // Reactivate and update the inactive user
     const { data: user, error } = await supabase
       .from('users')
       .update({
@@ -117,8 +124,8 @@ export async function createUser(
     return { ...toSafeUser(user), temporaryPassword: data.temporaryPassword };
   }
 
-  // Create new user
-  const { data: user, error } = await supabase
+  // Try to create new user
+  let createResult = await supabase
     .from('users')
     .insert([
       {
@@ -133,9 +140,36 @@ export async function createUser(
     .select()
     .single();
 
-  if (error) throw error;
+  // If unique constraint violation, try to update existing active user
+  if (createResult.error && createResult.error.code === '23505') {
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
 
-  return { ...toSafeUser(user), temporaryPassword: data.temporaryPassword };
+    if (existingUser) {
+      const updateResult = await supabase
+        .from('users')
+        .update({
+          name: data.name,
+          password_hash: passwordHash,
+          role: data.role,
+          is_active: true,
+          must_change_password: true,
+        })
+        .eq('id', existingUser.id)
+        .select()
+        .single();
+
+      if (updateResult.error) throw updateResult.error;
+      return { ...toSafeUser(updateResult.data), temporaryPassword: data.temporaryPassword };
+    }
+  }
+
+  if (createResult.error) throw createResult.error;
+
+  return { ...toSafeUser(createResult.data), temporaryPassword: data.temporaryPassword };
 }
 
 export async function updateUser(

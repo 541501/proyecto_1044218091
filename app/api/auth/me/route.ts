@@ -5,7 +5,7 @@ import { User } from '@/lib/types';
 
 async function handleMe(req: NextRequest, user: any) {
   try {
-    console.log('[me] Fetching user with ID:', user.userId);
+    console.log('[me] Request received from user:', user.userId, user.email);
     
     // Timeout de 15 segundos para la consulta (aumentado de 8 para mayor tolerancia)
     const userPromise = getUserById(user.userId);
@@ -16,8 +16,13 @@ async function handleMe(req: NextRequest, user: any) {
     const fullUser = (await Promise.race([userPromise, timeoutPromise])) as User | null;
     
     if (!fullUser) {
-      console.log('[me] User not found for ID:', user.userId);
+      console.log('[me] User not found in database for ID:', user.userId);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (!fullUser.is_active) {
+      console.log('[me] User is inactive:', fullUser.email);
+      return NextResponse.json({ error: 'User account is inactive' }, { status: 403 });
     }
 
     console.log('[me] User found successfully:', fullUser.email);

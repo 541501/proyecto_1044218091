@@ -7,10 +7,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { withRole } from '@/lib/withRole';
+import { JWTPayload } from '@/lib/types';
 import * as dataService from '@/lib/dataService';
 import { createUserSchema } from '@/lib/schemas';
 
-async function handler(request: NextRequest) {
+async function handler(request: NextRequest, user: JWTPayload) {
   if (request.method === 'GET') {
     try {
       const users = await dataService.listUsers();
@@ -48,18 +49,18 @@ async function handler(request: NextRequest) {
         .substring(0, 12);
 
       // Create user (password will be hashed in dataService)
-      const user = await dataService.createUser({
+      const createdUser = await dataService.createUser({
         name,
         email,
         temporaryPassword: tempPassword,
         role
       });
 
-      // Retorn user info WITH the temporary password
+      // Return user info WITH the temporary password
       // This should be shown only once in a modal
       return NextResponse.json(
         {
-          user,
+          user: createdUser,
           temporaryPassword: tempPassword,
           message: 'Usuario creado. Muestra la contraseña temporal una sola vez.'
         },

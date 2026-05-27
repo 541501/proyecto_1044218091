@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
 
     // Check if user is active
     if (!user.is_active) {
+      console.log('[login] User is inactive:', user.email);
       return NextResponse.json(
         { error: 'La cuenta ha sido desactivada. Contacta al administrador.' },
         { status: 403 }
@@ -48,6 +49,8 @@ export async function POST(req: NextRequest) {
       must_change_password: user.must_change_password,
     });
 
+    console.log('[login] JWT generated successfully for:', user.email);
+
     // Create response
     const response = NextResponse.json({
       user: toSafeUser(user),
@@ -56,12 +59,15 @@ export async function POST(req: NextRequest) {
 
     // Set auth cookie
     const isProduction = process.env.NODE_ENV === 'production';
-    response.headers.set('Set-Cookie', createAuthCookie(token, isProduction));
+    const authCookie = createAuthCookie(token, isProduction);
+    console.log('[login] Setting auth cookie for:', user.email);
+    response.headers.set('Set-Cookie', authCookie);
 
     // Add no-cache headers
     response.headers.set('Cache-Control', 'no-store, must-revalidate');
     response.headers.set('Pragma', 'no-cache');
 
+    console.log('[login] Login successful for:', user.email);
     return response;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Login failed';

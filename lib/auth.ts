@@ -65,8 +65,8 @@ export function getTokenFromCookie(cookieHeader: string | null): string | null {
  */
 export function createAuthCookie(token: string, isProduction: boolean = false): string {
   const maxAge = 24 * 60 * 60; // 24 hours in seconds
-  const secure = isProduction ? 'Secure;' : '';
-  return `auth-token=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; ${secure} SameSite=Strict`;
+  const secure = isProduction ? 'Secure; ' : '';
+  return `auth-token=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; ${secure}SameSite=Strict`;
 }
 
 /**
