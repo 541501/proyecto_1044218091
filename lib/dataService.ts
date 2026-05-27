@@ -88,12 +88,42 @@ export async function createUser(
 ): Promise<SafeUser & { temporaryPassword: string }> {
   const passwordHash = await bcrypt.hash(data.temporaryPassword, 10);
   const supabase = getSupabaseAdmin();
+  const normalizedEmail = data.email.toLowerCase();
+
+  // Check if there's an inactive user with this email to reactivate
+  const { data: inactiveUser } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', normalizedEmail)
+    .eq('is_active', false)
+    .single();
+
+  if (inactiveUser) {
+    // Reactivate and update the inactive user
+    const { data: user, error } = await supabase
+      .from('users')
+      .update({
+        name: data.name,
+        password_hash: passwordHash,
+        role: data.role,
+        is_active: true,
+        must_change_password: true,
+      })
+      .eq('id', inactiveUser.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { ...toSafeUser(user), temporaryPassword: data.temporaryPassword };
+  }
+
+  // Create new user
   const { data: user, error } = await supabase
     .from('users')
     .insert([
       {
         name: data.name,
-        email: data.email.toLowerCase(),
+        email: normalizedEmail,
         password_hash: passwordHash,
         role: data.role,
         is_active: true,
