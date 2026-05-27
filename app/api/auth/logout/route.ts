@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClearAuthCookie } from '@/lib/auth';
-import { authenticatedRoute } from '@/lib/withAuth';
 
-async function handleLogout(_req: NextRequest, _user: any) {
+export async function POST(_req: NextRequest) {
   try {
     const response = NextResponse.json({ success: true });
     response.headers.set('Set-Cookie', createClearAuthCookie());
@@ -13,5 +12,3 @@ async function handleLogout(_req: NextRequest, _user: any) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-
-export const POST = authenticatedRoute(handleLogout);
