@@ -61,7 +61,6 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   console.log('[getUserByEmail] User found:', normalizedEmail);
   return data;
 }
-}
 
 export async function getUserById(id: string): Promise<User | null> {
   const supabase = getSupabaseAdmin();
