@@ -4,7 +4,14 @@ import { authenticatedRoute } from '@/lib/withAuth';
 
 async function handleMe(req: NextRequest, user: any) {
   try {
-    const fullUser = await getUserById(user.userId);
+    // Timeout de 8 segundos para la consulta
+    const userPromise = getUserById(user.userId);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Database query timeout')), 8000)
+    );
+    
+    const fullUser = await Promise.race([userPromise, timeoutPromise]);
+    
     if (!fullUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }

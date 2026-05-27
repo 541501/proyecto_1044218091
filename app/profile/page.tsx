@@ -39,9 +39,18 @@ function ProfileContent() {
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | undefined;
+    let autoRedirectId: NodeJS.Timeout | undefined;
     let isMounted = true;
     
-    // Timeout de 8 segundos para mostrar opción de salir
+    // Auto-redirect después de 15 segundos si no carga
+    autoRedirectId = setTimeout(() => {
+      if (isMounted) {
+        console.log('[profile] Auto-redirecting due to timeout');
+        router.push('/login');
+      }
+    }, 15000);
+    
+    // Mostrar botón de logout después de 8 segundos
     timeoutId = setTimeout(() => {
       if (isMounted) setLoadingTimeout(true);
     }, 8000);
@@ -49,7 +58,7 @@ function ProfileContent() {
     (async () => {
       try {
         const controller = new AbortController();
-        const fetchTimeoutId = setTimeout(() => controller.abort(), 10000);
+        const fetchTimeoutId = setTimeout(() => controller.abort(), 12000);
         
         const res = await fetch('/api/auth/me', { 
           credentials: 'include',
@@ -58,26 +67,34 @@ function ProfileContent() {
         clearTimeout(fetchTimeoutId);
         
         if (!res.ok) {
-          if (isMounted) router.push('/login');
+          if (isMounted) {
+            console.log('[profile] Fetch failed:', res.status);
+            router.push('/login');
+          }
           return;
         }
+        
         const data = await res.json();
         if (isMounted) {
           setUser(data.user);
+          if (autoRedirectId) clearTimeout(autoRedirectId);
+          if (timeoutId) clearTimeout(timeoutId);
           if (data.user.must_change_password) {
             addToast('Debes cambiar tu contraseña antes de continuar', 'warning');
           }
-          if (timeoutId) clearTimeout(timeoutId);
         }
       } catch (err) {
-        console.error('[profile]', err);
-        if (isMounted && timeoutId) clearTimeout(timeoutId);
+        console.error('[profile] Fetch error:', err);
+        if (isMounted) {
+          if (timeoutId) clearTimeout(timeoutId);
+        }
       }
     })();
     
     return () => {
       isMounted = false;
       if (timeoutId) clearTimeout(timeoutId);
+      if (autoRedirectId) clearTimeout(autoRedirectId);
     };
   }, [router, addToast]);
 
