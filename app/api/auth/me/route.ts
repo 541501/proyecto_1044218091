@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserById, toSafeUser } from '@/lib/dataService';
 import { authenticatedRoute } from '@/lib/withAuth';
+import { User } from '@/lib/types';
 
 async function handleMe(req: NextRequest, user: any) {
   try {
@@ -8,11 +9,11 @@ async function handleMe(req: NextRequest, user: any) {
     
     // Timeout de 15 segundos para la consulta (aumentado de 8 para mayor tolerancia)
     const userPromise = getUserById(user.userId);
-    const timeoutPromise = new Promise((_, reject) =>
+    const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Database query timeout after 15s')), 15000)
     );
     
-    const fullUser = await Promise.race([userPromise, timeoutPromise]);
+    const fullUser = (await Promise.race([userPromise, timeoutPromise])) as User | null;
     
     if (!fullUser) {
       console.log('[me] User not found for ID:', user.userId);
