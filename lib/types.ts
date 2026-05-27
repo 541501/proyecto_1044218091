@@ -184,6 +184,7 @@ export interface CreateReservationRequest {
   reservation_date: string;
   subject: string;
   group_name: string;
+  professor_name?: string;
 }
 
 export interface CancelReservationRequest {
