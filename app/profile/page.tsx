@@ -39,28 +39,44 @@ function ProfileContent() {
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | undefined;
+    let isMounted = true;
     
-    // Timeout de 5 segundos para mostrar opción de salir
+    // Timeout de 8 segundos para mostrar opción de salir
     timeoutId = setTimeout(() => {
-      setLoadingTimeout(true);
-    }, 5000);
+      if (isMounted) setLoadingTimeout(true);
+    }, 8000);
 
     (async () => {
       try {
-        const res = await fetch('/api/auth/me', { credentials: 'include' });
-        if (!res.ok) return router.push('/login');
-        const data = await res.json();
-        setUser(data.user);
-        if (data.user.must_change_password) {
-          addToast('Debes cambiar tu contraseña antes de continuar', 'warning');
+        const controller = new AbortController();
+        const fetchTimeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const res = await fetch('/api/auth/me', { 
+          credentials: 'include',
+          signal: controller.signal 
+        });
+        clearTimeout(fetchTimeoutId);
+        
+        if (!res.ok) {
+          if (isMounted) router.push('/login');
+          return;
         }
-        if (timeoutId) clearTimeout(timeoutId);
+        const data = await res.json();
+        if (isMounted) {
+          setUser(data.user);
+          if (data.user.must_change_password) {
+            addToast('Debes cambiar tu contraseña antes de continuar', 'warning');
+          }
+          if (timeoutId) clearTimeout(timeoutId);
+        }
       } catch (err) {
-        if (timeoutId) clearTimeout(timeoutId);
+        console.error('[profile]', err);
+        if (isMounted && timeoutId) clearTimeout(timeoutId);
       }
     })();
     
     return () => {
+      isMounted = false;
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [router, addToast]);
@@ -104,17 +120,13 @@ function ProfileContent() {
           <div className="font-mono text-sm uppercase tracking-wide mb-6">
             {loadingTimeout ? 'Sesión tardando en cargar' : 'Cargando perfil…'}
           </div>
-          {!loadingTimeout && (
-            <div className="mx-auto h-6 w-6 rounded-full border-2 border-brand border-t-transparent animate-spin" />
-          )}
-          {loadingTimeout && (
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-bad text-[#0B1538] border border-bad hover:opacity-90 transition-opacity font-mono text-sm uppercase tracking-wide"
-            >
-              Cerrar sesión
-            </button>
-          )}
+          <div className="mx-auto h-6 w-6 rounded-full border-2 border-brand border-t-transparent animate-spin mb-8" />
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-ink text-paper border border-ink hover:bg-ink-soft transition-colors font-mono text-sm uppercase tracking-wide"
+          >
+            Cerrar sesión
+          </button>
         </div>
       </div>
     );
