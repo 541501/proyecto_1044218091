@@ -42,11 +42,16 @@ export default function RoomDetailsPage({
   const selectedDate = searchParams.get('date') || new Date().toISOString().split('T')[0];
 
   const getMonday = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const day = date.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    date.setDate(date.getDate() + diff);
-    return date.toISOString().split('T')[0];
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(year, month - 1, day + diff);
+    return [
+      monday.getFullYear(),
+      String(monday.getMonth() + 1).padStart(2, '0'),
+      String(monday.getDate()).padStart(2, '0'),
+    ].join('-');
   };
 
   useEffect(() => {

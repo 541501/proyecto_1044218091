@@ -56,10 +56,22 @@ export default function WeeklyCalendar({ calendar, loading, onSlotClick, onWeekC
 
   const handleToday = () => {
     const today = new Date();
-    const day = today.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    today.setDate(today.getDate() + diff);
-    changeWeek(today.toISOString().split('T')[0]);
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    const day = today.getDate();
+    const dateStr = [year, String(month).padStart(2, '0'), String(day).padStart(2, '0')].join('-');
+    
+    const dateObj = new Date(year, month - 1, day);
+    const dayOfWeek = dateObj.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(year, month - 1, day + diff);
+    const mondayStr = [
+      monday.getFullYear(),
+      String(monday.getMonth() + 1).padStart(2, '0'),
+      String(monday.getDate()).padStart(2, '0'),
+    ].join('-');
+    
+    changeWeek(mondayStr);
   };
 
   const allFree = calendar.days.every((day) => day.slots.every((s) => s.state === 'libre'));

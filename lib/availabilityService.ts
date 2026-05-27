@@ -39,7 +39,8 @@ export async function buildWeeklyCalendar(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const startDate = new Date(weekStart);
+  const [year, month, day] = weekStart.split('-').map(Number);
+  const startDate = new Date(year, month - 1, day);
   const days: Date[] = [];
   
   // Generar 6 días (lunes a sábado)
