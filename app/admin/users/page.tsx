@@ -15,6 +15,7 @@ import {
   IconCheck,
   IconDot,
   IconShield,
+  IconTrash,
 } from '@/components/icons';
 
 type Role = 'profesor' | 'coordinador' | 'admin';
@@ -58,6 +59,11 @@ export default function AdminUsersPage() {
   const [editRole, setEditRole] = useState<Role>('profesor');
   const [editActive, setEditActive] = useState(true);
   const [editError, setEditError] = useState<string | null>(null);
+
+  // Delete
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const refresh = async () => {
     const r = await fetch('/api/users');
@@ -171,6 +177,33 @@ export default function AdminUsersPage() {
     }
   };
 
+  const openDeleteModal = (u: UserRow) => {
+    setDeleteTarget(u);
+    setDeleteError(null);
+    setOpenDeleteConfirm(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/users/${deleteTarget.id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setOpenDeleteConfirm(false);
+        await refresh();
+        flashToast('ok', 'Usuario eliminado exitosamente.');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setDeleteError(data.error || 'Error al eliminar el usuario.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const fmtDate = (s: string | null) => {
     if (!s) return <span className="italic text-ink-mute">Nunca</span>;
     return new Date(s).toLocaleString('es-CO', {
@@ -278,6 +311,13 @@ export default function AdminUsersPage() {
                           title={u.is_active ? 'Suspender' : 'Reactivar'}
                         >
                           <IconShield size={16} />
+                        </button>
+                        <button
+                          onClick={() => openDeleteModal(u)}
+                          className="p-1.5 text-ink-mute hover:text-bad hover:bg-bad-bg transition-colors"
+                          title="Eliminar usuario"
+                        >
+                          <IconTrash size={16} />
                         </button>
                       </div>
                     </td>
@@ -474,6 +514,40 @@ export default function AdminUsersPage() {
               />
               <span className="text-sm text-ink">Cuenta activa</span>
             </label>
+          </div>
+        </Modal>
+
+        {/* Delete confirmation modal */}
+        <Modal
+          isOpen={openDeleteConfirm}
+          onClose={() => setOpenDeleteConfirm(false)}
+          title={deleteTarget ? `Eliminar ${deleteTarget.name}` : 'Eliminar usuario'}
+          eyebrow="Confirmación requerida"
+          actions={[
+            {
+              label: 'Eliminar usuario',
+              variant: 'danger',
+              onClick: handleDelete,
+              isLoading: submitting,
+            },
+          ]}
+        >
+          <div className="space-y-4">
+            {deleteError ? (
+              <div className="px-4 py-3 border-l-2 border-bad bg-bad-bg text-bad text-sm inline-flex items-center gap-2.5">
+                <IconAlert size={16} />
+                <span>{deleteError}</span>
+              </div>
+            ) : null}
+            <div className="flex items-start gap-2.5 px-4 py-3 border-l-2 border-bad bg-bad-bg/70 text-bad text-sm">
+              <IconAlert size={16} className="mt-0.5" />
+              <span>
+                Estás a punto de <strong>eliminar permanentemente</strong> a {deleteTarget?.name}. Esta acción no se puede deshacer.
+              </span>
+            </div>
+            <p className="text-sm text-ink-soft">
+              Se eliminarán todos los datos asociados a este usuario del sistema.
+            </p>
           </div>
         </Modal>
       </div>

@@ -1,6 +1,7 @@
 /**
  * GET /api/users/[id] → Obtiene usuario por ID (admin only)
  * PUT /api/users/[id] → Actualiza usuario (admin only)
+ * DELETE /api/users/[id] → Elimina usuario (admin only)
  * 
  * Acceso: admin
  */
@@ -62,6 +63,25 @@ export async function PUT(
       console.error('[PUT /api/users/[id]] Error:', error);
       return NextResponse.json(
         { error: 'Error al actualizar el usuario' },
+        { status: 500 }
+      );
+    }
+  })(request);
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  return withRole(['admin'])(async (req: NextRequest) => {
+    try {
+      await dataService.deleteUser(id);
+      return NextResponse.json({ message: 'Usuario eliminado exitosamente' }, { status: 200 });
+    } catch (error: unknown) {
+      console.error('[DELETE /api/users/[id]] Error:', error);
+      return NextResponse.json(
+        { error: 'Error al eliminar el usuario' },
         { status: 500 }
       );
     }
