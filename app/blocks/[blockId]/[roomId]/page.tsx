@@ -44,9 +44,9 @@ export default function RoomDetailsPage({
   const getMonday = (dateStr: string) => {
     const date = new Date(dateStr);
     const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(date.setDate(diff));
-    return monday.toISOString().split('T')[0];
+    const diff = day === 0 ? -6 : 1 - day;
+    date.setDate(date.getDate() + diff);
+    return date.toISOString().split('T')[0];
   };
 
   useEffect(() => {
