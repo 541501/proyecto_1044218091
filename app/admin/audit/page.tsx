@@ -59,7 +59,7 @@ export default function AdminAuditPage() {
       if (meRes.ok) setUser((await meRes.json()).user);
       else router.replace('/login');
     })();
-  }, [router]);}
+  }, [router]);
 
   useEffect(() => {
     if (!month) return;
