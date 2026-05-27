@@ -24,18 +24,42 @@ function ProfileContent() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const mustChange = searchParams.get('action') === 'change-password';
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {}
+    router.replace('/login');
+  };
+
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
     (async () => {
-      const res = await fetch('/api/auth/me', { credentials: 'include' });
-      if (!res.ok) return router.push('/login');
-      const data = await res.json();
-      setUser(data.user);
-      if (data.user.must_change_password) {
-        addToast('Debes cambiar tu contraseña antes de continuar', 'warning');
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (!res.ok) return router.push('/login');
+        const data = await res.json();
+        setUser(data.user);
+        if (data.user.must_change_password) {
+          addToast('Debes cambiar tu contraseña antes de continuar', 'warning');
+        }
+        clearTimeout(timeoutId);
+      } catch (err) {
+        clearTimeout(timeoutId);
       }
     })();
+    
+    // Timeout de 5 segundos para mostrar opción de salir
+    timeoutId = setTimeout(() => {
+      setLoadingTimeout(true);
+    }, 5000);
+    
+    return () => clearTimeout(timeoutId);
   }, [router, addToast]);
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -72,8 +96,23 @@ function ProfileContent() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-ink-mute font-mono text-sm uppercase tracking-wide">
-        Cargando perfil…
+      <div className="min-h-screen flex items-center justify-center bg-paper text-ink-mute">
+        <div className="text-center">
+          <div className="font-mono text-sm uppercase tracking-wide mb-6">
+            {loadingTimeout ? 'Sesión tardando en cargar' : 'Cargando perfil…'}
+          </div>
+          {!loadingTimeout && (
+            <div className="mx-auto h-6 w-6 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+          )}
+          {loadingTimeout && (
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-bad text-[#0B1538] border border-bad hover:opacity-90 transition-opacity font-mono text-sm uppercase tracking-wide"
+            >
+              Cerrar sesión
+            </button>
+          )}
+        </div>
       </div>
     );
   }

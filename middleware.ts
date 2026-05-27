@@ -65,10 +65,13 @@ export async function middleware(req: NextRequest) {
 
     return NextResponse.next();
   } catch (err) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    return NextResponse.redirect(new URL('/login', req.url));
+    // Token inválido: limpiar la cookie
+    const response = pathname.startsWith('/api/') 
+      ? NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      : NextResponse.redirect(new URL('/login', req.url));
+    
+    response.headers.set('Set-Cookie', 'auth-token=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict');
+    return response;
   }
 }
 

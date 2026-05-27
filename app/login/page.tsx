@@ -22,6 +22,7 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -31,7 +32,10 @@ export default function LoginPage() {
         return;
       }
 
+      // Pequeña pausa para asegurar que la cookie se establezca antes de redirigir
+      await new Promise(resolve => setTimeout(resolve, 100));
       router.push('/dashboard');
+      setIsLoading(false);
     } catch {
       setError('Error de conexión. Intenta de nuevo.');
       setIsLoading(false);

@@ -39,16 +39,35 @@ export default function DashboardPage() {
   useEffect(() => {
     (async () => {
       try {
-        const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+        // Fetch con timeout de 10 segundos
+        const meController = new AbortController();
+        const meTimeoutId = setTimeout(() => meController.abort(), 10000);
+        
+        const meRes = await fetch('/api/auth/me', { 
+          credentials: 'include',
+          signal: meController.signal 
+        });
+        clearTimeout(meTimeoutId);
+        
         if (!meRes.ok) throw new Error('Not authenticated');
         const meData = await meRes.json();
         setUser(meData.user);
 
-        const dashRes = await fetch('/api/dashboard', { credentials: 'include' });
+        const dashController = new AbortController();
+        const dashTimeoutId = setTimeout(() => dashController.abort(), 10000);
+        
+        const dashRes = await fetch('/api/dashboard', { 
+          credentials: 'include',
+          signal: dashController.signal 
+        });
+        clearTimeout(dashTimeoutId);
+        
         const dashData = await dashRes.json();
         setDashboardData(dashData.data ?? dashData);
-      } catch {
-        router.push('/login');
+      } catch (err) {
+        console.error('[dashboard] Load error:', err);
+        // Dar un pequeño delay antes de redirigir para evitar loops
+        setTimeout(() => router.push('/login'), 500);
       } finally {
         setLoading(false);
       }

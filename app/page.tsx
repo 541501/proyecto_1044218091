@@ -9,9 +9,22 @@ export default function HomePage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/auth/me', { credentials: 'include' });
-        router.push(res.ok ? '/dashboard' : '/login');
-      } catch {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const res = await fetch('/api/auth/me', { 
+          credentials: 'include',
+          signal: controller.signal 
+        });
+        clearTimeout(timeoutId);
+        
+        if (res.ok) {
+          router.push('/dashboard');
+        } else {
+          router.push('/login');
+        }
+      } catch (err) {
+        console.error('[home] Auth check error:', err);
         router.push('/login');
       }
     })();
