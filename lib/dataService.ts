@@ -126,9 +126,10 @@ export async function updateUser(
 
 export async function deleteUser(id: string): Promise<void> {
   const supabase = getSupabaseAdmin();
+  // Soft delete: marcar como inactivo en lugar de eliminar
   const { error } = await supabase
     .from('users')
-    .delete()
+    .update({ is_active: false })
     .eq('id', id);
 
   if (error) throw error;
@@ -139,6 +140,7 @@ export async function listUsers(): Promise<SafeUser[]> {
   const { data: users, error } = await supabase
     .from('users')
     .select('*')
+    .eq('is_active', true)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (users ?? []).map(toSafeUser);

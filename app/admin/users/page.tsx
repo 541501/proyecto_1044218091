@@ -198,10 +198,10 @@ export default function AdminUsersPage() {
       if (res.ok) {
         setOpenDeleteConfirm(false);
         await refresh();
-        flashToast('ok', 'Usuario eliminado exitosamente.');
+        flashToast('ok', 'Usuario desactivado exitosamente.');
       } else {
         const data = await res.json().catch(() => ({}));
-        setDeleteError(data.error || 'Error al eliminar el usuario.');
+        setDeleteError(data.error || 'Error al desactivar el usuario.');
       }
     } finally {
       setSubmitting(false);
@@ -525,11 +525,11 @@ export default function AdminUsersPage() {
         <Modal
           isOpen={openDeleteConfirm}
           onClose={() => setOpenDeleteConfirm(false)}
-          title={deleteTarget ? `Eliminar ${deleteTarget.name}` : 'Eliminar usuario'}
+          title={deleteTarget ? `Desactivar ${deleteTarget.name}` : 'Desactivar usuario'}
           eyebrow="Confirmación requerida"
           actions={[
             {
-              label: 'Eliminar usuario',
+              label: 'Desactivar usuario',
               variant: 'danger',
               onClick: handleDelete,
               isLoading: submitting,
@@ -546,11 +546,11 @@ export default function AdminUsersPage() {
             <div className="flex items-start gap-2.5 px-4 py-3 border-l-2 border-bad bg-bad-bg/70 text-bad text-sm">
               <IconAlert size={16} className="mt-0.5" />
               <span>
-                Estás a punto de <strong>eliminar permanentemente</strong> a {deleteTarget?.name}. Esta acción no se puede deshacer.
+                Estás a punto de <strong>desactivar</strong> a {deleteTarget?.name}. El usuario no podrá acceder al sistema.
               </span>
             </div>
             <p className="text-sm text-ink-soft">
-              Se eliminarán todos los datos asociados a este usuario del sistema.
+              El usuario puede ser reactivado posteriormente. Sus datos asociados se mantienen en el sistema.
             </p>
           </div>
         </Modal>
