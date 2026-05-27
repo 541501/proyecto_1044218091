@@ -7,13 +7,7 @@ async function handleMe(req: NextRequest, user: any) {
   try {
     console.log('[me] Request received from user:', user.userId, user.email);
     
-    // Timeout de 15 segundos para la consulta (aumentado de 8 para mayor tolerancia)
-    const userPromise = getUserById(user.userId);
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Database query timeout after 15s')), 15000)
-    );
-    
-    const fullUser = (await Promise.race([userPromise, timeoutPromise])) as User | null;
+    const fullUser = await getUserById(user.userId);
     
     if (!fullUser) {
       console.log('[me] User not found in database for ID:', user.userId);

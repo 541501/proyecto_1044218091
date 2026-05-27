@@ -54,6 +54,8 @@ export default function DashboardPage() {
   useEffect(() => {
     (async () => {
       try {
+        console.log('[dashboard] Fetching user data...');
+        
         // Fetch con timeout de 10 segundos
         const meController = new AbortController();
         const meTimeoutId = setTimeout(() => meController.abort(), 10000);
@@ -64,21 +66,37 @@ export default function DashboardPage() {
         });
         clearTimeout(meTimeoutId);
         
-        if (!meRes.ok) throw new Error('Not authenticated');
+        console.log('[dashboard] /api/auth/me response:', meRes.status);
+        
+        if (!meRes.ok) {
+          const errorData = await meRes.json().catch(() => ({}));
+          console.error('[dashboard] Auth error:', errorData);
+          throw new Error(errorData.error || 'Not authenticated');
+        }
+        
         const meData = await meRes.json();
+        console.log('[dashboard] User data:', meData.user?.email);
         setUser(meData.user);
 
-        const dashController = new AbortController();
-        const dashTimeoutId = setTimeout(() => dashController.abort(), 10000);
-        
-        const dashRes = await fetch('/api/dashboard', { 
-          credentials: 'include',
-          signal: dashController.signal 
-        });
-        clearTimeout(dashTimeoutId);
-        
-        const dashData = await dashRes.json();
-        setDashboardData(dashData.data ?? dashData);
+        // Try to fetch dashboard data, but don't fail if it doesn't exist
+        try {
+          const dashController = new AbortController();
+          const dashTimeoutId = setTimeout(() => dashController.abort(), 10000);
+          
+          const dashRes = await fetch('/api/dashboard', { 
+            credentials: 'include',
+            signal: dashController.signal 
+          });
+          clearTimeout(dashTimeoutId);
+          
+          if (dashRes.ok) {
+            const dashData = await dashRes.json();
+            setDashboardData(dashData.data ?? dashData);
+          }
+        } catch (dashErr) {
+          console.warn('[dashboard] Dashboard data fetch failed (non-blocking):', dashErr);
+          // Continue anyway - dashboard data is optional
+        }
       } catch (err) {
         console.error('[dashboard] Load error:', err);
         // Dar un pequeño delay antes de redirigir para evitar loops

@@ -45,17 +45,20 @@ export async function verifyJWT(token: string): Promise<JWTPayload> {
  */
 export function getTokenFromCookie(cookieHeader: string | null): string | null {
   if (!cookieHeader) {
+    console.log('[getTokenFromCookie] No cookie header provided');
     return null;
   }
 
   const cookies = cookieHeader.split('; ');
   for (const cookie of cookies) {
     const [name, value] = cookie.split('=');
-    if (name === 'auth-token') {
+    if (name === 'auth-token' && value) {
+      console.log('[getTokenFromCookie] Token found in cookie');
       return decodeURIComponent(value);
     }
   }
 
+  console.log('[getTokenFromCookie] Token not found in cookies');
   return null;
 }
 

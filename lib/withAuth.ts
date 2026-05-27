@@ -12,13 +12,24 @@ export async function withAuth(
   handler: (req: NextRequest, user: JWTPayload) => Promise<NextResponse>
 ): Promise<NextResponse> {
   try {
-    const token = getTokenFromCookie(req.headers.get('cookie'));
+    let token = getTokenFromCookie(req.headers.get('cookie'));
+    
+    // Fallback: check Authorization header
+    if (!token) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
 
     if (!token) {
+      console.log('[withAuth] No token found');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    console.log('[withAuth] Token found, verifying...');
     const user = await verifyJWT(token);
+    console.log('[withAuth] Token verified for user:', user.email);
 
     // Call the handler with the user context
     const response = await handler(req, user);
@@ -31,6 +42,7 @@ export async function withAuth(
     return response;
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
+    console.error('[withAuth] Auth error:', errorMessage);
     return NextResponse.json({ error: errorMessage }, { status: 401 });
   }
 }

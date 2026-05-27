@@ -18,6 +18,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      console.log('[login] Sending login request...');
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -25,18 +26,27 @@ export default function LoginPage() {
         credentials: 'include',
       });
 
+      console.log('[login] Login response status:', res.status);
+
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[login] Login failed:', data.error);
         setError(data.error || 'Error en la autenticación');
         setIsLoading(false);
         return;
       }
 
-      // Pequeña pausa para asegurar que la cookie se establezca antes de redirigir
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const loginData = await res.json();
+      console.log('[login] Login successful, token received');
+
+      // Wait longer to ensure cookie is set
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log('[login] Redirecting to dashboard...');
       router.push('/dashboard');
-      setIsLoading(false);
-    } catch {
+      
+    } catch (err) {
+      console.error('[login] Error:', err);
       setError('Error de conexión. Intenta de nuevo.');
       setIsLoading(false);
     }

@@ -23,12 +23,22 @@ const roleRoutes = {
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  // Rutas públicas
-  if (pathname === '/login' || pathname === '/' || pathname === '/api/auth/login' || pathname === '/api/auth/logout' || pathname === '/api/system/mode' || pathname === '/api/system/diagnose' || pathname === '/api/system/bootstrap') {
+  // Rutas públicas (sin autenticación)
+  const publicRoutes = [
+    '/login',
+    '/',
+    '/api/auth/login',
+    '/api/auth/logout',
+    '/api/system/mode',
+    '/api/system/diagnose',
+    '/api/system/bootstrap',
+  ];
+
+  if (publicRoutes.includes(pathname)) {
     return NextResponse.next();
   }
 
-  // Verificar token
+  // Verificar token para rutas protegidas
   const authToken = req.cookies.get('auth-token')?.value;
 
   if (!authToken) {
