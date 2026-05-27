@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/Button';
+import ProfessorTagInput from '@/components/reservations/ProfessorTagInput';
 import {
   IconChevronLeft,
   IconAlert,
@@ -11,6 +12,13 @@ import {
   IconDot,
   IconCalendarPlus,
 } from '@/components/icons';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'profesor' | 'coordinador' | 'admin';
+}
 
 export default function NewReservationPage() {
   return (
@@ -32,7 +40,7 @@ function NewReservationContent() {
 
   const [subject, setSubject] = useState('');
   const [groupName, setGroupName] = useState('');
-  const [professorName, setProfessorName] = useState('');
+  const [selectedProfessor, setSelectedProfessor] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [conflictError, setConflictError] = useState<{
@@ -95,7 +103,7 @@ function NewReservationContent() {
           reservation_date: selectedDate,
           subject: subject.trim(),
           group_name: groupName.trim(),
-          professor_name: professorName.trim() || undefined,
+          professor_name: selectedProfessor?.name || undefined,
         }),
       });
 
@@ -230,17 +238,11 @@ function NewReservationContent() {
               <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
                 03 · Docente (Opcional)
               </label>
-              <input
-                type="text"
-                value={professorName}
-                onChange={(e) => setProfessorName(e.target.value)}
-                placeholder="Ej. Dr. Juan García"
-                maxLength={100}
-                className="field text-lg"
+              <ProfessorTagInput
+                value={selectedProfessor}
+                onChange={setSelectedProfessor}
+                placeholder="Escribe @ y busca un docente"
               />
-              <div className="font-mono text-[10px] text-ink-mute mt-1.5 text-right">
-                {professorName.length}/100
-              </div>
             </div>
 
             {isDateInvalid ? (

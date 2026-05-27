@@ -25,6 +25,7 @@ interface Reservation {
   reservation_date: string;
   subject: string;
   group_name: string;
+  professor_name?: string;
   status: 'confirmada' | 'cancelada';
   created_at: string;
   cancellation_reason?: string | null;
@@ -250,6 +251,11 @@ function MyReservationsContent() {
                       <span className="font-mono text-[12px] text-ink-mute">
                         Grupo: {r.group_name}
                       </span>
+                      {r.professor_name ? (
+                        <span className="inline-block px-2 py-1 bg-accent/20 border border-accent/40 rounded text-[11px] font-mono uppercase tracking-wide text-accent">
+                          @{r.professor_name}
+                        </span>
+                      ) : null}
                     </div>
                     {r.status === 'cancelada' && r.cancellation_reason ? (
                       <div className="mt-3 text-sm text-ink-soft italic border-l-2 border-rule pl-3">

@@ -63,6 +63,7 @@ function ReservationsContent() {
   const [canceling, setCanceling] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [filter, setFilter] = useState<'all' | 'confirmada' | 'cancelada'>('confirmada');
+  const [professorFilter, setProfessorFilter] = useState('');
 
   const isAdmin = user?.role === 'admin' || user?.role === 'coordinador';
 
@@ -132,7 +133,13 @@ function ReservationsContent() {
     }
   };
 
-  const filtered = reservations.filter((r) => (filter === 'all' ? true : r.status === filter));
+  const filtered = reservations.filter((r) => {
+    const statusMatch = filter === 'all' ? true : r.status === filter;
+    const professorMatch = professorFilter.trim() === '' 
+      ? true 
+      : r.professor_name?.toLowerCase().includes(professorFilter.toLowerCase());
+    return statusMatch && professorMatch;
+  });
 
   const fmtDate = (s: string) =>
     new Date(s).toLocaleDateString('es-CO', {
@@ -206,6 +213,15 @@ function ReservationsContent() {
               );
             })}
           </div>
+          <div className="flex items-center gap-2 flex-1 min-w-[250px]">
+            <input
+              type="text"
+              value={professorFilter}
+              onChange={(e) => setProfessorFilter(e.target.value)}
+              placeholder="Buscar por docente (tag)…"
+              className="flex-1 px-3 py-2 border border-rule rounded text-sm font-mono text-[12px]"
+            />
+          </div>
           {!isAdmin ? (
             <button
               onClick={() => router.push('/blocks')}
@@ -277,7 +293,7 @@ function ReservationsContent() {
                       </span>
                       {r.professor_name ? (
                         <span className="inline-block px-2 py-1 bg-accent/20 border border-accent/40 rounded text-[11px] font-mono uppercase tracking-wide text-accent">
-                          {r.professor_name}
+                          @{r.professor_name}
                         </span>
                       ) : null}
                       {isAdmin && r.professor?.name ? (
