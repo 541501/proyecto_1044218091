@@ -35,6 +35,21 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleEmergencyLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      console.error('[logout]', err);
+    } finally {
+      router.push('/login');
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -77,7 +92,16 @@ export default function DashboardPage() {
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-paper text-ink-soft font-mono text-sm uppercase tracking-wide">
-        Cargando panel…
+        <div className="text-center">
+          <div className="mb-4">Cargando panel…</div>
+          <button
+            onClick={handleEmergencyLogout}
+            disabled={isLoggingOut}
+            className="px-3 py-2 text-xs bg-ink text-paper hover:bg-ink-soft disabled:opacity-50 transition-colors"
+          >
+            {isLoggingOut ? 'Cerrando…' : 'Cerrar sesión'}
+          </button>
+        </div>
       </div>
     );
   }
