@@ -32,6 +32,7 @@ function NewReservationContent() {
 
   const [subject, setSubject] = useState('');
   const [groupName, setGroupName] = useState('');
+  const [professorName, setProfessorName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [conflictError, setConflictError] = useState<{
@@ -94,6 +95,7 @@ function NewReservationContent() {
           reservation_date: selectedDate,
           subject: subject.trim(),
           group_name: groupName.trim(),
+          professor_name: professorName.trim() || undefined,
         }),
       });
 
@@ -221,6 +223,23 @@ function NewReservationContent() {
               />
               <div className="font-mono text-[10px] text-ink-mute mt-1.5 text-right">
                 {groupName.length}/50
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                03 · Docente (Opcional)
+              </label>
+              <input
+                type="text"
+                value={professorName}
+                onChange={(e) => setProfessorName(e.target.value)}
+                placeholder="Ej. Dr. Juan García"
+                maxLength={100}
+                className="field text-lg"
+              />
+              <div className="font-mono text-[10px] text-ink-mute mt-1.5 text-right">
+                {professorName.length}/100
               </div>
             </div>
 

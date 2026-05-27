@@ -90,6 +90,7 @@ export interface Reservation {
   reservation_date: string; // YYYY-MM-DD
   subject: string;
   group_name: string;
+  professor_name?: string; // Nombre del docente que dará la clase (tag)
   status: 'confirmada' | 'cancelada';
   cancellation_reason: string | null;
   cancelled_by: string | null;
@@ -115,6 +116,7 @@ export interface SlotCell {
     professorName: string;
     subject: string;
     groupName: string;
+    professorTag?: string; // Nombre del docente que dará la clase (tag)
   };
 }
 

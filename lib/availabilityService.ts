@@ -104,7 +104,8 @@ export async function buildWeeklyCalendar(
             id: reservation.id,
             professorName: reservation.professorName || 'Profesor',
             subject: reservation.subject,
-            groupName: reservation.group_name
+            groupName: reservation.group_name,
+            professorTag: reservation.professor_name || undefined
           } : undefined
         };
       })

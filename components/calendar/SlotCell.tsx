@@ -52,6 +52,11 @@ export default function SlotCell({ slot, onClick }: Props) {
           <div className="text-[11px] opacity-80 line-clamp-1">
             {slot.reservation.professorName}
           </div>
+          {slot.reservation.professorTag ? (
+            <div className="mt-1.5 inline-block px-2 py-1 bg-accent/20 border border-accent/40 rounded text-[10px] font-mono uppercase tracking-wide text-accent">
+              {slot.reservation.professorTag}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

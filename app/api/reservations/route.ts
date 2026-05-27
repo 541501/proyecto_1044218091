@@ -17,7 +17,8 @@ const CreateReservationSchema = z.object({
   slot_id: z.string().uuid(),
   reservation_date: z.string().date(),
   subject: z.string().min(1).max(150),
-  group_name: z.string().min(1).max(50)
+  group_name: z.string().min(1).max(50),
+  professor_name: z.string().min(1).max(100).optional()
 });
 
 export async function GET(request: NextRequest) {
