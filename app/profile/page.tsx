@@ -40,25 +40,33 @@ function ProfileContent() {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | undefined;
     let autoRedirectId: NodeJS.Timeout | undefined;
+    let fetchTimeoutId: NodeJS.Timeout | undefined;
     let isMounted = true;
     
-    // Auto-redirect después de 15 segundos si no carga
+    // Auto-redirect después de 25 segundos si no carga
     autoRedirectId = setTimeout(() => {
       if (isMounted) {
         console.log('[profile] Auto-redirecting due to timeout');
         router.push('/login');
       }
-    }, 15000);
+    }, 25000);
     
-    // Mostrar botón de logout después de 8 segundos
+    // Mostrar botón de logout después de 10 segundos
     timeoutId = setTimeout(() => {
-      if (isMounted) setLoadingTimeout(true);
-    }, 8000);
+      if (isMounted) {
+        console.log('[profile] Showing logout button due to timeout');
+        setLoadingTimeout(true);
+      }
+    }, 10000);
 
     (async () => {
       try {
+        console.log('[profile] Fetching user data...');
         const controller = new AbortController();
-        const fetchTimeoutId = setTimeout(() => controller.abort(), 12000);
+        fetchTimeoutId = setTimeout(() => {
+          console.log('[profile] Aborting fetch (timeout)');
+          controller.abort();
+        }, 15000);
         
         const res = await fetch('/api/auth/me', { 
           credentials: 'include',
@@ -68,14 +76,17 @@ function ProfileContent() {
         
         if (!res.ok) {
           if (isMounted) {
-            console.log('[profile] Fetch failed:', res.status);
-            router.push('/login');
+            console.log('[profile] Fetch failed with status:', res.status);
+            if (res.status === 401 || res.status === 403) {
+              router.push('/login');
+            }
           }
           return;
         }
         
         const data = await res.json();
         if (isMounted) {
+          console.log('[profile] User data loaded successfully');
           setUser(data.user);
           if (autoRedirectId) clearTimeout(autoRedirectId);
           if (timeoutId) clearTimeout(timeoutId);
@@ -84,9 +95,11 @@ function ProfileContent() {
           }
         }
       } catch (err) {
-        console.error('[profile] Fetch error:', err);
         if (isMounted) {
-          if (timeoutId) clearTimeout(timeoutId);
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+          console.error('[profile] Fetch error:', errorMsg, err);
+          // No redirigir aquí, dejar que el auto-redirect maneje esto después de 25s
+          // Esto permite que el usuario tenga acceso al botón de logout
         }
       }
     })();
@@ -95,6 +108,7 @@ function ProfileContent() {
       isMounted = false;
       if (timeoutId) clearTimeout(timeoutId);
       if (autoRedirectId) clearTimeout(autoRedirectId);
+      if (fetchTimeoutId) clearTimeout(fetchTimeoutId);
     };
   }, [router, addToast]);
 
