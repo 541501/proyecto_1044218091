@@ -17,7 +17,7 @@ export default function WeekNavigator({
 }: Props) {
   const startDate = new Date(weekStart);
   const endDate = new Date(startDate);
-  endDate.setDate(endDate.getDate() + 4);
+  endDate.setDate(endDate.getDate() + 5);
 
   const fmt = (d: Date) => d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
 
@@ -27,7 +27,7 @@ export default function WeekNavigator({
     const start = new Date(weekStart);
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
-    end.setDate(end.getDate() + 5);
+    end.setDate(end.getDate() + 6);
     return today >= start && today < end;
   };
 

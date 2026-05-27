@@ -82,7 +82,7 @@ export default function WeeklyCalendar({ calendar, loading, onSlotClick, onWeekC
 
       {/* Desktop grid */}
       <div className="hidden md:block border border-rule">
-        <div className="grid grid-cols-[120px_repeat(5,_1fr)] bg-paper-soft border-b border-rule">
+        <div className="grid grid-cols-[120px_repeat(6,_1fr)] bg-paper-soft border-b border-rule">
           <div className="px-3 py-3 font-mono text-[10px] uppercase tracking-wide text-ink-mute">
             Franja
           </div>
@@ -99,7 +99,7 @@ export default function WeeklyCalendar({ calendar, loading, onSlotClick, onWeekC
         {calendar.days[0]?.slots.map((_, slotIndex) => (
           <div
             key={slotIndex}
-            className="grid grid-cols-[120px_repeat(5,_1fr)] border-b border-rule last:border-b-0"
+            className="grid grid-cols-[120px_repeat(6,_1fr)] border-b border-rule last:border-b-0"
           >
             <div className="px-3 py-3 bg-paper/60 flex items-center font-mono text-[11px] uppercase tracking-wide text-ink-soft border-r border-rule">
               {calendar.days[0].slots[slotIndex]?.slotName}

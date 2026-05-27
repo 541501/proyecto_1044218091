@@ -42,8 +42,8 @@ export async function buildWeeklyCalendar(
   const startDate = new Date(weekStart);
   const days: Date[] = [];
   
-  // Generar 5 días (lunes a viernes)
-  for (let i = 0; i < 5; i++) {
+  // Generar 6 días (lunes a sábado)
+  for (let i = 0; i < 6; i++) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
     date.setHours(0, 0, 0, 0);
@@ -74,7 +74,7 @@ export async function buildWeeklyCalendar(
     weekStart,
     days: days.map(date => ({
       date: date.toISOString().split('T')[0],
-      dayName: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'][date.getDay() === 0 ? 6 : date.getDay() - 1],
+      dayName: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sab'][date.getDay() === 0 ? 6 : date.getDay() - 1],
       slots: slots.map((slot: Slot) => {
         const dateKey = date.toISOString().split('T')[0];
         const reservationKey = `${dateKey}|${slot.id}`;
