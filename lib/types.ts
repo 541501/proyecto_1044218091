@@ -185,6 +185,7 @@ export interface CreateReservationRequest {
   subject: string;
   group_name: string;
   professor_name?: string;
+  professor_id?: string; // Si se taguea un profesor, usar su ID como professor_id
 }
 
 export interface CancelReservationRequest {

@@ -514,13 +514,18 @@ export async function createReservation(
   console.log('[createReservation] Inserting reservation into database...');
   const supabase = getSupabaseAdmin();
   try {
+    // Si se proporciona professor_id (profesor tagueado), usarlo como professor_id
+    // Si no, usar userId (quien crea la reserva)
+    const professorId = data.professor_id || userId;
+    console.log('[createReservation] Using professor_id:', professorId, data.professor_id ? '(tagged professor)' : '(creator)');
+    
     const { data: reservation, error } = await supabase
       .from('reservations')
       .insert([
         {
           room_id: data.room_id,
           slot_id: data.slot_id,
-          professor_id: userId,
+          professor_id: professorId,
           reservation_date: data.reservation_date,
           subject: data.subject,
           group_name: data.group_name,

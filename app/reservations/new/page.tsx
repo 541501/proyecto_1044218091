@@ -104,9 +104,12 @@ function NewReservationContent() {
       group_name: groupName.trim(),
     };
 
-    // Solo incluir professor_name si hay profesor seleccionado
+    // Solo incluir professor_name y professor_id si hay profesor seleccionado
     if (selectedProfessor?.name) {
       payload.professor_name = selectedProfessor.name;
+    }
+    if (selectedProfessor?.id) {
+      payload.professor_id = selectedProfessor.id;
     }
 
     console.log('[new-reservation] Submitting payload:', payload);

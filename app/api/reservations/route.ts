@@ -18,7 +18,8 @@ const CreateReservationSchema = z.object({
   reservation_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha debe ser formato YYYY-MM-DD'),
   subject: z.string().min(1, 'Asignatura requerida').max(150),
   group_name: z.string().min(1, 'Grupo requerido').max(50),
-  professor_name: z.string().max(100).optional()
+  professor_name: z.string().max(100).optional(),
+  professor_id: z.string().uuid('ID de profesor inválido').optional()
 });
 
 export async function GET(request: NextRequest) {
@@ -58,7 +59,7 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
     const validated = CreateReservationSchema.parse(body);
     debugLogs.push(`[3] Validation passed`);
 
-    // Asegurar que professor_name sea undefined si no existe o es vacío
+    // Asegurar que professor_name y professor_id sean undefined si no existen o son vacíos
     const reservationData: CreateReservationRequest = {
       room_id: validated.room_id,
       slot_id: validated.slot_id,
@@ -67,6 +68,9 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
       group_name: validated.group_name,
       ...(validated.professor_name && validated.professor_name.trim() 
         ? { professor_name: validated.professor_name.trim() } 
+        : {}),
+      ...(validated.professor_id
+        ? { professor_id: validated.professor_id }
         : {})
     };
 
