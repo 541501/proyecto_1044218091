@@ -18,7 +18,7 @@ const CreateReservationSchema = z.object({
   reservation_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha debe ser formato YYYY-MM-DD'),
   subject: z.string().min(1, 'Asignatura requerida').max(150),
   group_name: z.string().min(1, 'Grupo requerido').max(50),
-  professor_name: z.string().min(1).max(100).optional()
+  professor_name: z.string().max(100).optional().nullable()
 });
 
 export async function GET(request: NextRequest) {
