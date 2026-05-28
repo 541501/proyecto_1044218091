@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import ReservationsCalendar from '@/components/reservations/ReservationsCalendar';
 import {
   IconDot,
   IconCheck,
@@ -63,6 +64,7 @@ function MyReservationsContent() {
   const [canceling, setCanceling] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [filter, setFilter] = useState<'all' | 'confirmada' | 'cancelada'>('confirmada');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   useEffect(() => {
     (async () => {
@@ -158,7 +160,7 @@ function MyReservationsContent() {
           </div>
         ) : null}
 
-        {/* Filter chips */}
+        {/* Filter chips and view toggle */}
         <div className="border-y border-rule py-3 mb-8 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-1">
             {(['confirmada', 'cancelada', 'all'] as const).map((f) => {
@@ -192,13 +194,38 @@ function MyReservationsContent() {
               );
             })}
           </div>
-          <button
-            onClick={() => router.push('/blocks')}
-            className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-ink-soft hover:text-ink transition-colors"
-          >
-            Nueva reserva
-            <IconArrowRight size={14} />
-          </button>
+
+          <div className="flex items-center gap-2">
+            {/* View toggle buttons */}
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 border text-sm font-mono uppercase tracking-wide transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-brand text-paper border-brand'
+                  : 'bg-transparent text-ink-soft border-rule hover:border-ink hover:text-ink'
+              }`}
+            >
+              Lista
+            </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`px-3 py-2 border text-sm font-mono uppercase tracking-wide transition-colors ${
+                viewMode === 'calendar'
+                  ? 'bg-brand text-paper border-brand'
+                  : 'bg-transparent text-ink-soft border-rule hover:border-ink hover:text-ink'
+              }`}
+            >
+              Horario
+            </button>
+
+            <button
+              onClick={() => router.push('/blocks')}
+              className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-ink-soft hover:text-ink transition-colors"
+            >
+              Nueva reserva
+              <IconArrowRight size={14} />
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -212,6 +239,8 @@ function MyReservationsContent() {
             description="Explora la disponibilidad por bloque para registrar tu primera reserva."
             action={{ label: 'Ir a bloques', onClick: () => router.push('/blocks') }}
           />
+        ) : viewMode === 'calendar' ? (
+          <ReservationsCalendar reservations={filtered} />
         ) : (
           <ul className="divide-y divide-rule border-y border-rule">
             {filtered.map((r) => (
