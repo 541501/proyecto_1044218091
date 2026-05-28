@@ -38,6 +38,7 @@ export default function RoomDetailsPage({
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState<string>('');
+  const [mounted, setMounted] = useState(false);
 
   const selectedDate = searchParams.get('date') || new Date().toISOString().split('T')[0];
 
@@ -54,12 +55,18 @@ export default function RoomDetailsPage({
     ].join('-');
   };
 
+  // Ensure component is mounted before updating state
   useEffect(() => {
-    setCurrentWeekStart(getMonday(selectedDate));
-  }, [selectedDate]);
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    if (!currentWeekStart) return;
+    if (!mounted) return;
+    setCurrentWeekStart(getMonday(selectedDate));
+  }, [selectedDate, mounted]);
+
+  useEffect(() => {
+    if (!currentWeekStart || !mounted || !params.roomId) return;
     (async () => {
       try {
         setLoading(true);
@@ -73,7 +80,7 @@ export default function RoomDetailsPage({
         setLoading(false);
       }
     })();
-  }, [params.roomId, currentWeekStart]);
+  }, [params.roomId, currentWeekStart, mounted]);
 
   const handleSlotClick = (dayIndex: number, slotIndex: number) => {
     if (!calendar) return;
