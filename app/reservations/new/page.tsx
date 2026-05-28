@@ -97,6 +97,7 @@ function NewReservationContent() {
       const res = await fetch('/api/reservations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           room_id: roomId,
           slot_id: slotId,
