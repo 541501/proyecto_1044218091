@@ -93,14 +93,18 @@ function NewReservationContent() {
     setError('');
     setConflictError(null);
 
-    const payload = {
+    const payload: any = {
       room_id: roomId,
       slot_id: slotId,
       reservation_date: selectedDate,
       subject: subject.trim(),
       group_name: groupName.trim(),
-      professor_name: selectedProfessor?.name || undefined,
     };
+
+    // Solo incluir professor_name si hay profesor seleccionado
+    if (selectedProfessor?.name) {
+      payload.professor_name = selectedProfessor.name;
+    }
 
     console.log('[new-reservation] Submitting payload:', payload);
 
