@@ -48,10 +48,16 @@ export async function GET(request: NextRequest) {
 
 export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload) => {
   try {
+    console.log('[POST /api/reservations] Request from user:', user.userId);
+    
     const body = await req.json();
+    console.log('[POST /api/reservations] Body:', body);
+    
     const validated = CreateReservationSchema.parse(body);
+    console.log('[POST /api/reservations] Validated:', validated);
 
     const reservation = await createReservation(user.userId, validated);
+    console.log('[POST /api/reservations] Created reservation:', reservation.id);
 
     return NextResponse.json(reservation, { status: 201 });
   } catch (error: unknown) {
@@ -59,6 +65,7 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
 
     // Validation error
     if (error instanceof z.ZodError) {
+      console.error('[POST /api/reservations] Zod validation error:', (error as z.ZodError).errors);
       return NextResponse.json(
         { error: 'Validación fallida', details: (error as z.ZodError).errors },
         { status: 400 }
@@ -69,6 +76,7 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
 
     // Business rule validation
     if (err.code === 'VALIDATION_ERROR') {
+      console.log('[POST /api/reservations] Business validation error:', err.message);
       return NextResponse.json(
         { error: String(err.message) },
         { status: 400 }
@@ -77,6 +85,7 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
 
     // Conflict
     if (err.code === 'CONFLICT' || err.code === 'RACE_CONDITION') {
+      console.log('[POST /api/reservations] Conflict detected:', err.message);
       const conflict = err.conflict as Record<string, unknown> | undefined;
       return NextResponse.json(
         {
@@ -94,8 +103,19 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
       );
     }
 
+    // Log full error details
+    console.error('[POST /api/reservations] Unhandled error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      code: err.code,
+      details: err.details,
+      stack: error instanceof Error ? error.stack : undefined
+    });
+
     return NextResponse.json(
-      { error: 'Error creating reservation' },
+      { 
+        error: 'Error creating reservation',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

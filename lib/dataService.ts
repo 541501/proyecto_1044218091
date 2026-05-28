@@ -457,22 +457,28 @@ export async function createReservation(
 ): Promise<Reservation> {
   const { validateReservationRules, checkConflict } = await import('./reservationService');
 
+  console.log('[createReservation] Starting for user:', userId, 'data:', data);
+
   const validationErrors = validateReservationRules(data.reservation_date);
   if (validationErrors.length > 0) {
+    console.log('[createReservation] Validation errors:', validationErrors);
     const err = new Error(validationErrors[0]) as any;
     err.code = 'VALIDATION_ERROR';
     err.details = validationErrors;
     throw err;
   }
 
+  console.log('[createReservation] Checking conflicts...');
   const conflict = await checkConflict(data.room_id, data.slot_id, data.reservation_date);
   if (conflict) {
+    console.log('[createReservation] Conflict found:', conflict);
     const err = new Error('Conflicto de reserva') as any;
     err.code = 'CONFLICT';
     err.conflict = conflict;
     throw err;
   }
 
+  console.log('[createReservation] Inserting reservation into database...');
   const supabase = getSupabaseAdmin();
   try {
     const { data: reservation, error } = await supabase
@@ -495,7 +501,9 @@ export async function createReservation(
       .single();
 
     if (error) {
+      console.error('[createReservation] Database error:', error);
       if (error.code === '23505') {
+        console.log('[createReservation] Race condition detected (unique constraint)');
         const raceErr = new Error('Conflicto de reserva') as any;
         raceErr.code = 'RACE_CONDITION';
         throw raceErr;
@@ -503,6 +511,7 @@ export async function createReservation(
       throw error;
     }
 
+    console.log('[createReservation] Recording audit...');
     await recordAudit({
       user_id: userId,
       user_email: 'unknown',
@@ -513,6 +522,7 @@ export async function createReservation(
       summary: `Reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date} (${data.group_name})`,
     });
 
+    console.log('[createReservation] Successfully created reservation:', reservation.id);
     return reservation;
   } catch (err: any) {
     console.error('[createReservation] Error:', err);
