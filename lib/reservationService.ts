@@ -35,9 +35,9 @@ export function validateReservationRules(dateStr: string): string[] {
     errors.push('No se pueden reservar franjas con más de 60 días de anticipación');
   }
 
-  // Además: no permitir reservas en el pasado o de hoy
-  if (date < today || date.getTime() === today.getTime()) {
-    errors.push('No se pueden reservar franjas del día actual o del pasado');
+  // Además: no permitir reservas en el pasado
+  if (date < today) {
+    errors.push('No se pueden reservar franjas del pasado');
   }
 
   return errors;
