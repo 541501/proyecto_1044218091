@@ -512,15 +512,20 @@ export async function createReservation(
     }
 
     console.log('[createReservation] Recording audit...');
-    await recordAudit({
-      user_id: userId,
-      user_email: 'unknown',
-      user_role: 'profesor',
-      operation: 'INSERT',
-      entity: 'reservation',
-      entity_id: reservation.id,
-      summary: `Reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date} (${data.group_name})`,
-    });
+    try {
+      await recordAudit({
+        user_id: userId,
+        user_email: 'unknown',
+        user_role: 'profesor',
+        operation: 'INSERT',
+        entity: 'reservation',
+        entity_id: reservation.id,
+        summary: `Reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date} (${data.group_name})`,
+      });
+    } catch (auditErr) {
+      console.error('[createReservation] Audit error (non-blocking):', auditErr);
+      // Continue anyway - audit failure shouldn't block reservation creation
+    }
 
     console.log('[createReservation] Successfully created reservation:', reservation.id);
     return reservation;
