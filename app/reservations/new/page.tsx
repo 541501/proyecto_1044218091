@@ -77,10 +77,13 @@ function NewReservationContent() {
 
   const isDateInvalid = (() => {
     if (!selectedDate) return false;
-    const selected = new Date(selectedDate);
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const selected = new Date(year, month - 1, day);
     const today = new Date();
+    // Set both to midnight for comparison
     today.setHours(0, 0, 0, 0);
     selected.setHours(0, 0, 0, 0);
+    console.log('[isDateInvalid] selected:', selected, 'today:', today, 'invalid:', selected < today);
     return selected < today;
   })();
 
@@ -142,12 +145,16 @@ function NewReservationContent() {
   };
 
   const dateLabel = selectedDate
-    ? new Date(selectedDate).toLocaleDateString('es-CO', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      })
+    ? (() => {
+        const [year, month, day] = selectedDate.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        return date.toLocaleDateString('es-CO', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+      })()
     : '—';
 
   return (
