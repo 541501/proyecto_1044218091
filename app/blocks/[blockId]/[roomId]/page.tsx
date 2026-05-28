@@ -38,7 +38,6 @@ export default function RoomDetailsPage({
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState<string>('');
-  const [mounted, setMounted] = useState(false);
 
   const selectedDate = searchParams.get('date') || new Date().toISOString().split('T')[0];
 
@@ -55,32 +54,32 @@ export default function RoomDetailsPage({
     ].join('-');
   };
 
-  // Ensure component is mounted before updating state
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Calculate weekStart from selectedDate
+  const calculatedWeekStart = getMonday(selectedDate);
 
+  // Load data when params or calculatedWeekStart changes
   useEffect(() => {
-    if (!mounted) return;
-    setCurrentWeekStart(getMonday(selectedDate));
-  }, [selectedDate, mounted]);
-
-  useEffect(() => {
-    if (!currentWeekStart || !mounted || !params.roomId) return;
     (async () => {
       try {
         setLoading(true);
+        setCalendar(null); // Reset calendar
+        setRoom(null); // Reset room
+        
         const meRes = await fetch('/api/auth/me', { credentials: 'include' });
         if (meRes.ok) setUser((await meRes.json()).user ?? null);
+        
         const roomRes = await fetch(`/api/rooms/${params.roomId}`, { credentials: 'include' });
         if (roomRes.ok) setRoom(await roomRes.json());
-        const calRes = await fetch(`/api/rooms/${params.roomId}/calendar?weekStart=${currentWeekStart}`, { credentials: 'include' });
+        
+        const calRes = await fetch(`/api/rooms/${params.roomId}/calendar?weekStart=${calculatedWeekStart}`, { credentials: 'include' });
         if (calRes.ok) setCalendar(await calRes.json());
+      } catch (err) {
+        console.error('[RoomDetailsPage] Error:', err);
       } finally {
         setLoading(false);
       }
     })();
-  }, [params.roomId, currentWeekStart, mounted]);
+  }, [params.roomId, calculatedWeekStart]);
 
   const handleSlotClick = (dayIndex: number, slotIndex: number) => {
     if (!calendar) return;
