@@ -153,13 +153,25 @@ function ProfileContent() {
         const err = await res.json();
         addToast(err.error || 'Error al cambiar contraseña', 'error');
       } else {
+        const data = await res.json();
         addToast('Contraseña actualizada con éxito', 'success');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
-        if (mustChange) setTimeout(() => router.push('/login'), 1500);
+        
+        if (mustChange) {
+          // After forced password change, redirect to dashboard
+          console.log('[profile] Forced password change successful, redirecting to dashboard');
+          setTimeout(() => router.push('/dashboard'), 1500);
+        } else {
+          // For voluntary password change, update the user state with new token
+          console.log('[profile] Password change successful');
+          // The new cookie will be set automatically by the response header
+          // No need to do anything else - user is already authenticated
+        }
       }
-    } catch {
+    } catch (err) {
+      console.error('[profile] Password change error:', err);
       addToast('Error al cambiar contraseña', 'error');
     } finally {
       setLoading(false);
