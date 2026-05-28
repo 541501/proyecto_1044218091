@@ -22,11 +22,11 @@ export function validateReservationRules(dateStr: string): string[] {
   today.setHours(0, 0, 0, 0);
   date.setHours(0, 0, 0, 0);
 
-  // RN-02: Verificar que sea día hábil (lunes=1 a viernes=5)
+  // RN-02: Verificar que sea día hábil (lunes=1 a sábado=6, excluyendo domingo=0)
   // 0=domingo, 1=lunes, 2=martes, 3=miércoles, 4=jueves, 5=viernes, 6=sábado
   const dayOfWeek = date.getDay();
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    errors.push('Las reservas solo pueden realizarse de lunes a viernes');
+  if (dayOfWeek === 0) {
+    errors.push('Las reservas no pueden realizarse los domingos');
   }
 
   // RN-03: Verificar que no sea más de 60 días de anticipación
