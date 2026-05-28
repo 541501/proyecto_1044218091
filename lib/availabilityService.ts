@@ -83,15 +83,15 @@ export async function buildWeeklyCalendar(
         
         let state: SlotCellState;
         
-        if (date < today || date.toISOString().split('T')[0] === today.toISOString().split('T')[0]) {
-          // Hoy o fecha pasada
+        if (date < today) {
+          // Fecha pasada
           if (reservation) {
             state = 'ocupada_pasada';
           } else {
             state = 'pasada';
           }
         } else {
-          // Futuro
+          // Hoy o futuro
           state = reservation ? 'ocupada' : 'libre';
         }
 

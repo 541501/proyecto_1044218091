@@ -81,7 +81,7 @@ function NewReservationContent() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     selected.setHours(0, 0, 0, 0);
-    return selected <= today;
+    return selected < today;
   })();
 
   const handleSubmit = async (e: React.FormEvent) => {
