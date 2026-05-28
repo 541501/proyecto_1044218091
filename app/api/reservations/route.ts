@@ -47,27 +47,34 @@ export async function GET(request: NextRequest) {
 }
 
 export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload) => {
+  const debugLogs: string[] = [];
+  
   try {
-    console.log('[POST /api/reservations] Request from user:', user.userId);
+    debugLogs.push(`[1] Request from user: ${user.userId}`);
     
     const body = await req.json();
-    console.log('[POST /api/reservations] Body:', body);
+    debugLogs.push(`[2] Body received: ${JSON.stringify(body)}`);
     
     const validated = CreateReservationSchema.parse(body);
-    console.log('[POST /api/reservations] Validated:', validated);
+    debugLogs.push(`[3] Validation passed`);
 
     const reservation = await createReservation(user.userId, validated);
-    console.log('[POST /api/reservations] Created reservation:', reservation.id);
+    debugLogs.push(`[4] Created reservation: ${reservation.id}`);
 
     return NextResponse.json(reservation, { status: 201 });
   } catch (error: unknown) {
-    console.error('[POST /api/reservations] Error:', error);
+    debugLogs.push(`[ERROR] ${error instanceof Error ? error.message : String(error)}`);
+    debugLogs.push(`[ERROR_STACK] ${error instanceof Error ? error.stack : 'No stack'}`);
 
     // Validation error
     if (error instanceof z.ZodError) {
-      console.error('[POST /api/reservations] Zod validation error:', (error as z.ZodError).errors);
+      debugLogs.push(`[ZOD_ERROR] Validation failed`);
       return NextResponse.json(
-        { error: 'Validación fallida', details: (error as z.ZodError).errors },
+        { 
+          error: 'Validación fallida', 
+          details: (error as z.ZodError).errors,
+          debug: debugLogs
+        },
         { status: 400 }
       );
     }
@@ -76,16 +83,16 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
 
     // Business rule validation
     if (err.code === 'VALIDATION_ERROR') {
-      console.log('[POST /api/reservations] Business validation error:', err.message);
+      debugLogs.push(`[BUSINESS_ERROR] ${String(err.message)}`);
       return NextResponse.json(
-        { error: String(err.message) },
+        { error: String(err.message), debug: debugLogs },
         { status: 400 }
       );
     }
 
     // Conflict
     if (err.code === 'CONFLICT' || err.code === 'RACE_CONDITION') {
-      console.log('[POST /api/reservations] Conflict detected:', err.message);
+      debugLogs.push(`[CONFLICT] ${String(err.message)}`);
       const conflict = err.conflict as Record<string, unknown> | undefined;
       return NextResponse.json(
         {
@@ -97,24 +104,21 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
             professorName: conflict.professorName,
             subject: conflict.subject,
             groupName: conflict.groupName
-          } : undefined
+          } : undefined,
+          debug: debugLogs
         },
         { status: 409 }
       );
     }
 
-    // Log full error details
-    console.error('[POST /api/reservations] Unhandled error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      code: err.code,
-      details: err.details,
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    debugLogs.push(`[UNHANDLED] ${err.code || 'NO_CODE'}`);
 
     return NextResponse.json(
       { 
         error: 'Error creating reservation',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        errorType: typeof error,
+        debug: debugLogs
       },
       { status: 500 }
     );

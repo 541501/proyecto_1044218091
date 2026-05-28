@@ -55,16 +55,21 @@ export async function checkConflict(
   date: string
 ): Promise<ReservationConflict | null> {
   try {
+    console.log('[checkConflict] Starting with roomId:', roomId, 'slotId:', slotId, 'date:', date);
+    
     const reservations = await getReservations({
       roomId,
       date,
       status: 'confirmada'
     });
+    
+    console.log('[checkConflict] Got', reservations.length, 'existing reservations');
 
     // Buscar si alguna reserva uses el mismo slot
     const conflict = reservations.find((res: any) => res.slot_id === slotId);
 
     if (conflict) {
+      console.log('[checkConflict] Found conflict:', conflict.id);
       return {
         roomId: conflict.room_id,
         slotId: conflict.slot_id,
@@ -76,6 +81,7 @@ export async function checkConflict(
       };
     }
 
+    console.log('[checkConflict] No conflict found');
     return null;
   } catch (error) {
     console.error('[checkConflict] Error:', error);

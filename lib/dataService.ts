@@ -409,39 +409,72 @@ export async function getReservations(
   filters?: ReservationFilters,
 ): Promise<ReservationWithDetails[]> {
   const supabase = getSupabaseAdmin();
-  let query = supabase.from('reservations').select(`
-    *,
-    room:rooms(*),
-    slot:slots(*),
-    professor:users!professor_id(*)
-  `);
+  
+  try {
+    console.log('[getReservations] Starting with filters:', filters);
+    
+    let query = supabase.from('reservations').select(`
+      *,
+      room:rooms(*),
+      slot:slots(*),
+      professor:users!professor_id(*)
+    `);
 
-  if (filters?.roomId) query = query.eq('room_id', filters.roomId);
-  if (filters?.blockId) {
-    const { data: roomsInBlock } = await supabase
-      .from('rooms')
-      .select('id')
-      .eq('block_id', filters.blockId);
-    const roomIds = roomsInBlock?.map((r) => r.id) ?? [];
-    if (roomIds.length > 0) query = query.in('room_id', roomIds);
-  }
-  if (filters?.date) query = query.eq('reservation_date', filters.date);
-  if (filters?.from && filters?.to) {
-    query = query.gte('reservation_date', filters.from).lte('reservation_date', filters.to);
-  }
-  if (filters?.professorId) query = query.eq('professor_id', filters.professorId);
-  if (filters?.status) query = query.eq('status', filters.status);
+    if (filters?.roomId) {
+      console.log('[getReservations] Filtering by roomId:', filters.roomId);
+      query = query.eq('room_id', filters.roomId);
+    }
+    if (filters?.blockId) {
+      console.log('[getReservations] Filtering by blockId:', filters.blockId);
+      const { data: roomsInBlock, error: blockError } = await supabase
+        .from('rooms')
+        .select('id')
+        .eq('block_id', filters.blockId);
+      if (blockError) {
+        console.error('[getReservations] Block error:', blockError);
+        return [];
+      }
+      const roomIds = roomsInBlock?.map((r) => r.id) ?? [];
+      if (roomIds.length > 0) query = query.in('room_id', roomIds);
+    }
+    if (filters?.date) {
+      console.log('[getReservations] Filtering by date:', filters.date);
+      query = query.eq('reservation_date', filters.date);
+    }
+    if (filters?.from && filters?.to) {
+      console.log('[getReservations] Filtering by date range:', filters.from, 'to', filters.to);
+      query = query.gte('reservation_date', filters.from).lte('reservation_date', filters.to);
+    }
+    if (filters?.professorId) {
+      console.log('[getReservations] Filtering by professorId:', filters.professorId);
+      query = query.eq('professor_id', filters.professorId);
+    }
+    if (filters?.status) {
+      console.log('[getReservations] Filtering by status:', filters.status);
+      query = query.eq('status', filters.status);
+    }
 
-  const { data, error } = await query;
-  if (error) {
-    console.error('[getReservations] Error:', error);
-    return [];
+    console.log('[getReservations] Executing query...');
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('[getReservations] Supabase error:', error);
+      throw error;
+    }
+    
+    console.log('[getReservations] Got data, transforming...');
+    const result = (data ?? []).map((res: any) => ({
+      ...res,
+      professorName: res.professor?.name || 'Profesor Desconocido',
+      block: res.room?.block_id,
+    }));
+    
+    console.log('[getReservations] Returning', result.length, 'results');
+    return result;
+  } catch (error) {
+    console.error('[getReservations] Caught error:', error);
+    throw error;
   }
-  return (data ?? []).map((res: any) => ({
-    ...res,
-    professorName: res.professor?.name || 'Profesor Desconocido',
-    block: res.room?.block_id,
-  }));
 }
 
 export async function getMyReservations(
