@@ -524,7 +524,8 @@ export async function createReservation(
           reservation_date: data.reservation_date,
           subject: data.subject,
           group_name: data.group_name,
-          professor_name: data.professor_name || null,
+          // TODO: professor_name field should be added after migration 0005 is applied
+          // professor_name: data.professor_name || null,
           status: 'confirmada',
           created_by: userId,
           created_at: new Date().toISOString(),
