@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authenticatedRoute } from '@/lib/withAuth';
 import { withRole } from '@/lib/withRole';
 import { getReservations, createReservation } from '@/lib/dataService';
-import { JWTPayload } from '@/lib/types';
+import { JWTPayload, CreateReservationRequest } from '@/lib/types';
 import z from 'zod';
 
 const CreateReservationSchema = z.object({
@@ -58,7 +58,19 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
     const validated = CreateReservationSchema.parse(body);
     debugLogs.push(`[3] Validation passed`);
 
-    const reservation = await createReservation(user.userId, validated);
+    // Asegurar que professor_name sea undefined si no existe o es vacío
+    const reservationData: CreateReservationRequest = {
+      room_id: validated.room_id,
+      slot_id: validated.slot_id,
+      reservation_date: validated.reservation_date,
+      subject: validated.subject,
+      group_name: validated.group_name,
+      ...(validated.professor_name && validated.professor_name.trim() 
+        ? { professor_name: validated.professor_name.trim() } 
+        : {})
+    };
+
+    const reservation = await createReservation(user.userId, reservationData);
     debugLogs.push(`[4] Created reservation: ${reservation.id}`);
 
     return NextResponse.json(reservation, { status: 201 });
