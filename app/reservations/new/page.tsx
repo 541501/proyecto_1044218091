@@ -93,25 +93,32 @@ function NewReservationContent() {
     setError('');
     setConflictError(null);
 
+    const payload = {
+      room_id: roomId,
+      slot_id: slotId,
+      reservation_date: selectedDate,
+      subject: subject.trim(),
+      group_name: groupName.trim(),
+      professor_name: selectedProfessor?.name || undefined,
+    };
+
+    console.log('[new-reservation] Submitting payload:', payload);
+
     try {
       const res = await fetch('/api/reservations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          room_id: roomId,
-          slot_id: slotId,
-          reservation_date: selectedDate,
-          subject: subject.trim(),
-          group_name: groupName.trim(),
-          professor_name: selectedProfessor?.name || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
+      console.log('[new-reservation] Response status:', res.status);
+      
       if (res.status === 201) {
         router.push('/reservations/my?success=true');
       } else if (res.status === 409) {
         const data = await res.json();
+        console.log('[new-reservation] Conflict response:', data);
         if (data.conflict) {
           setConflictError(data.conflict);
         } else {
@@ -119,9 +126,11 @@ function NewReservationContent() {
         }
       } else {
         const data = await res.json().catch(() => ({}));
+        console.log('[new-reservation] Error response:', data);
         setError(data.error || 'Error al crear la reserva');
       }
-    } catch {
+    } catch (err) {
+      console.error('[new-reservation] Network error:', err);
       setError('Error de red al procesar la solicitud');
     } finally {
       setLoading(false);

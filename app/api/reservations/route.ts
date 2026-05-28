@@ -13,11 +13,11 @@ import { JWTPayload } from '@/lib/types';
 import z from 'zod';
 
 const CreateReservationSchema = z.object({
-  room_id: z.string().uuid(),
-  slot_id: z.string().uuid(),
-  reservation_date: z.string().date(),
-  subject: z.string().min(1).max(150),
-  group_name: z.string().min(1).max(50),
+  room_id: z.string().uuid('ID de sala inválido'),
+  slot_id: z.string().uuid('ID de franja inválido'),
+  reservation_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha debe ser formato YYYY-MM-DD'),
+  subject: z.string().min(1, 'Asignatura requerida').max(150),
+  group_name: z.string().min(1, 'Grupo requerido').max(50),
   professor_name: z.string().min(1).max(100).optional()
 });
 
