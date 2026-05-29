@@ -91,10 +91,13 @@ export interface Reservation {
   subject: string;
   group_name: string;
   professor_name?: string; // Nombre del docente que dará la clase (tag)
-  status: 'confirmada' | 'cancelada';
+  status: 'pendiente' | 'confirmada' | 'rechazada' | 'cancelada';
+  reason?: string | null; // Reason for requesting the reservation (when status='pendiente')
   cancellation_reason: string | null;
   cancelled_by: string | null;
   cancelled_at: string | null;
+  approved_by: string | null; // Admin who approved the request
+  approved_at: string | null; // When the request was approved
   created_by: string;
   created_at: string;
 }
@@ -159,7 +162,7 @@ export interface ReservationFilters {
   from?: string; // YYYY-MM-DD
   to?: string;   // YYYY-MM-DD
   professorId?: string;
-  status?: 'confirmada' | 'cancelada';
+  status?: 'pendiente' | 'confirmada' | 'rechazada' | 'cancelada';
 }
 
 export interface CreateRoomRequest {
@@ -186,6 +189,7 @@ export interface CreateReservationRequest {
   group_name: string;
   professor_name?: string;
   professor_id?: string; // Si se taguea un profesor, usar su ID como professor_id
+  reason?: string; // Reason for requesting the reservation
 }
 
 export interface CancelReservationRequest {

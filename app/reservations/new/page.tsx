@@ -40,6 +40,7 @@ function NewReservationContent() {
 
   const [subject, setSubject] = useState('');
   const [groupName, setGroupName] = useState('');
+  const [reason, setReason] = useState('');
   const [selectedProfessor, setSelectedProfessor] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -90,7 +91,7 @@ function NewReservationContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!roomId || !slotId || !selectedDate) return setError('Faltan datos de la reserva');
-    if (!subject.trim() || !groupName.trim()) return setError('Completa todos los campos');
+    if (!subject.trim() || !groupName.trim() || !reason.trim()) return setError('Completa todos los campos');
 
     setLoading(true);
     setError('');
@@ -102,6 +103,7 @@ function NewReservationContent() {
       reservation_date: selectedDate,
       subject: subject.trim(),
       group_name: groupName.trim(),
+      reason: reason.trim() || undefined,
     };
 
     // Solo incluir professor_name y professor_id si hay profesor seleccionado
@@ -260,7 +262,24 @@ function NewReservationContent() {
 
             <div>
               <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
-                03 · Docente (Opcional)
+                03 · Razón de la solicitud
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Describe por qué necesitas esta reserva (actividades, evaluaciones, etc.)"
+                maxLength={500}
+                className="field text-base resize-none"
+                rows={3}
+              />
+              <div className="font-mono text-[10px] text-ink-mute mt-1.5 text-right">
+                {reason.length}/500
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                04 · Docente (Opcional)
               </label>
               <ProfessorTagInput
                 value={selectedProfessor}
@@ -284,10 +303,10 @@ function NewReservationContent() {
                 type="submit"
                 variant="primary"
                 isLoading={loading}
-                disabled={loading || isDateInvalid || !subject.trim() || !groupName.trim()}
+                disabled={loading || isDateInvalid || !subject.trim() || !groupName.trim() || !reason.trim()}
               >
                 <IconCheck size={14} />
-                Confirmar reserva
+                Confirmar solicitud
               </Button>
             </div>
           </form>

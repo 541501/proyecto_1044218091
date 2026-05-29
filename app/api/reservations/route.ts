@@ -19,7 +19,8 @@ const CreateReservationSchema = z.object({
   subject: z.string().min(1, 'Asignatura requerida').max(150),
   group_name: z.string().min(1, 'Grupo requerido').max(50),
   professor_name: z.string().max(100).optional(),
-  professor_id: z.string().uuid('ID de profesor inválido').optional()
+  professor_id: z.string().uuid('ID de profesor inválido').optional(),
+  reason: z.string().min(1, 'Razón de la solicitud requerida').max(500).optional()
 });
 
 export async function GET(request: NextRequest) {
@@ -71,6 +72,9 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
         : {}),
       ...(validated.professor_id
         ? { professor_id: validated.professor_id }
+        : {}),
+      ...(validated.reason && validated.reason.trim()
+        ? { reason: validated.reason.trim() }
         : {})
     };
 

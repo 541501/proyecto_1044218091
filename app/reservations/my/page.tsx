@@ -27,7 +27,8 @@ interface Reservation {
   subject: string;
   group_name: string;
   professor_name?: string;
-  status: 'confirmada' | 'cancelada';
+  reason?: string | null;
+  status: 'pendiente' | 'confirmada' | 'rechazada' | 'cancelada';
   created_at: string;
   cancellation_reason?: string | null;
   room?: { code: string; block_id: string };
@@ -59,11 +60,13 @@ function MyReservationsContent() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selected, setSelected] = useState<Reservation | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [canceling, setCanceling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [filter, setFilter] = useState<'all' | 'confirmada' | 'cancelada'>('confirmada');
+  const [filter, setFilter] = useState<'all' | 'pendiente' | 'confirmada' | 'rechazada' | 'cancelada'>('confirmada');
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   useEffect(() => {
@@ -129,6 +132,31 @@ function MyReservationsContent() {
     }
   };
 
+  const handleConfirmDelete = async () => {
+    if (!selected) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/reservations/${selected.id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setReservations((prev) =>
+          prev.filter((r) => r.id !== selected.id)
+        );
+        setShowDeleteModal(false);
+        setSelected(null);
+        setSuccessMessage('Solicitud eliminada.');
+        setTimeout(() => setSuccessMessage(''), 4000);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Error al eliminar la solicitud.');
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filtered = reservations.filter((r) => (filter === 'all' ? true : r.status === filter));
 
   const fmtDate = (s: string) =>
@@ -163,9 +191,16 @@ function MyReservationsContent() {
         {/* Filter chips and view toggle */}
         <div className="border-y border-rule py-3 mb-8 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-1">
-            {(['confirmada', 'cancelada', 'all'] as const).map((f) => {
+            {(['pendiente', 'confirmada', 'rechazada', 'cancelada', 'all'] as const).map((f) => {
               const active = filter === f;
-              const label = f === 'all' ? 'Todas' : f === 'confirmada' ? 'Confirmadas' : 'Canceladas';
+              const labelMap = {
+                pendiente: 'Pendientes',
+                confirmada: 'Confirmadas',
+                rechazada: 'Rechazadas',
+                cancelada: 'Canceladas',
+                all: 'Todas',
+              };
+              const label = labelMap[f];
               const count =
                 f === 'all'
                   ? reservations.length
@@ -293,7 +328,19 @@ function MyReservationsContent() {
                     ) : null}
                   </div>
 
-                  {canCancel(r) ? (
+                  {r.status === 'pendiente' ? (
+                    <button
+                      onClick={() => {
+                        setSelected(r);
+                        setShowDeleteModal(true);
+                      }}
+                      className="text-ink-mute hover:text-bad transition-colors p-2"
+                      aria-label="Eliminar solicitud"
+                      title="Eliminar esta solicitud pendiente"
+                    >
+                      <IconTrash size={18} />
+                    </button>
+                  ) : canCancel(r) ? (
                     <button
                       onClick={() => {
                         setSelected(r);
@@ -302,6 +349,7 @@ function MyReservationsContent() {
                       }}
                       className="text-ink-mute hover:text-bad transition-colors p-2"
                       aria-label="Cancelar reserva"
+                      title="Cancelar esta reserva confirmada"
                     >
                       <IconTrash size={18} />
                     </button>
@@ -311,6 +359,42 @@ function MyReservationsContent() {
             ))}
           </ul>
         )}
+
+        {/* Delete request modal */}
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          title="Eliminar solicitud"
+          eyebrow="Acción irreversible"
+          actions={[
+            {
+              label: deleting ? 'Eliminando…' : 'Eliminar solicitud',
+              variant: 'danger',
+              onClick: handleConfirmDelete,
+              disabled: deleting,
+            },
+            {
+              label: 'Cancelar',
+              variant: 'ghost',
+              onClick: () => setShowDeleteModal(false),
+              disabled: deleting,
+            },
+          ]}
+        >
+          <div className="space-y-3">
+            <p className="text-ink-soft">
+              ¿Estás seguro de que deseas eliminar esta solicitud? Esta acción no se puede deshacer.
+            </p>
+            {selected?.reason && (
+              <div className="p-3 bg-accent-soft border border-accent rounded">
+                <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute mb-1">
+                  Razón de la solicitud
+                </div>
+                <p className="text-ink text-sm">{selected.reason}</p>
+              </div>
+            )}
+          </div>
+        </Modal>
 
         {/* Cancel modal */}
         <Modal

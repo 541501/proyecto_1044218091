@@ -529,9 +529,10 @@ export async function createReservation(
           reservation_date: data.reservation_date,
           subject: data.subject,
           group_name: data.group_name,
+          reason: data.reason || null,
           // TODO: professor_name field should be added after migration 0005 is applied
           // professor_name: data.professor_name || null,
-          status: 'confirmada',
+          status: 'pendiente',
           created_by: userId,
           created_at: new Date().toISOString(),
         },
@@ -559,14 +560,14 @@ export async function createReservation(
         operation: 'INSERT',
         entity: 'reservation',
         entity_id: reservation.id,
-        summary: `Reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date} (${data.group_name})`,
+        summary: `Solicitud de reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date} (${data.group_name}) - Razón: ${data.reason || 'No especificada'}`,
       });
     } catch (auditErr) {
       console.error('[createReservation] Audit error (non-blocking):', auditErr);
       // Continue anyway - audit failure shouldn't block reservation creation
     }
 
-    console.log('[createReservation] Successfully created reservation:', reservation.id);
+    console.log('[createReservation] Successfully created reservation request:', reservation.id);
     return reservation;
   } catch (err: any) {
     console.error('[createReservation] Error:', err);
@@ -704,5 +705,267 @@ export async function getOccupancyReport(
   } catch (err: any) {
     console.error('[getOccupancyReport] Error:', err);
     return [];
+  }
+}
+
+// ============================================================================
+// RESERVATION REQUESTS — Workflow de aprobación
+// ============================================================================
+
+/**
+ * Get all pending reservation requests (for admin panel)
+ * Returns requests with professor details and room/slot info
+ */
+export async function getPendingReservationRequests(): Promise<ReservationWithDetails[]> {
+  const supabase = getSupabaseAdmin();
+  
+  try {
+    console.log('[getPendingReservationRequests] Starting...');
+    
+    const { data, error } = await supabase
+      .from('reservations')
+      .select(`
+        *,
+        room:rooms(*),
+        slot:slots(*),
+        professor:users!professor_id(*)
+      `)
+      .eq('status', 'pendiente')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('[getPendingReservationRequests] Supabase error:', error);
+      throw error;
+    }
+    
+    const result = (data ?? []).map((res: any) => ({
+      ...res,
+      professorName: res.professor?.name || 'Profesor Desconocido',
+      block: res.room?.block_id,
+    }));
+    
+    console.log('[getPendingReservationRequests] Found', result.length, 'pending requests');
+    return result;
+  } catch (error) {
+    console.error('[getPendingReservationRequests] Caught error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Approve a pending reservation request
+ * Changes status from 'pendiente' to 'confirmada'
+ */
+export async function approveReservationRequest(
+  requestId: string,
+  adminId: string,
+): Promise<Reservation> {
+  const supabase = getSupabaseAdmin();
+  
+  try {
+    console.log('[approveReservationRequest] Approving request:', requestId, 'by admin:', adminId);
+    
+    // Fetch the request first
+    const { data: request, error: fetchError } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('id', requestId)
+      .eq('status', 'pendiente')
+      .single();
+    
+    if (fetchError || !request) {
+      console.log('[approveReservationRequest] Request not found or not pending:', requestId);
+      const err = new Error('Solicitud no encontrada o no está pendiente') as any;
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+    
+    // Update status to 'confirmada'
+    const { data: approved, error: updateError } = await supabase
+      .from('reservations')
+      .update({
+        status: 'confirmada',
+        approved_by: adminId,
+        approved_at: new Date().toISOString(),
+      })
+      .eq('id', requestId)
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.error('[approveReservationRequest] Database error:', updateError);
+      throw updateError;
+    }
+    
+    // Record audit
+    console.log('[approveReservationRequest] Recording audit...');
+    try {
+      await recordAudit({
+        user_id: adminId,
+        user_email: 'unknown',
+        user_role: 'admin',
+        operation: 'UPDATE',
+        entity: 'reservation',
+        entity_id: requestId,
+        summary: `Solicitud de reserva aprobada: ${request.subject} en ${request.reservation_date} - Profesor: ${request.professor_id}`,
+      });
+    } catch (auditErr) {
+      console.error('[approveReservationRequest] Audit error (non-blocking):', auditErr);
+    }
+    
+    console.log('[approveReservationRequest] Request approved successfully:', requestId);
+    return approved;
+  } catch (err: any) {
+    console.error('[approveReservationRequest] Error:', err);
+    throw err;
+  }
+}
+
+/**
+ * Reject a pending reservation request
+ * Changes status from 'pendiente' to 'rechazada'
+ */
+export async function rejectReservationRequest(
+  requestId: string,
+  adminId: string,
+  reason: string,
+): Promise<Reservation> {
+  const supabase = getSupabaseAdmin();
+  
+  try {
+    console.log('[rejectReservationRequest] Rejecting request:', requestId, 'by admin:', adminId);
+    
+    // Fetch the request first
+    const { data: request, error: fetchError } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('id', requestId)
+      .eq('status', 'pendiente')
+      .single();
+    
+    if (fetchError || !request) {
+      console.log('[rejectReservationRequest] Request not found or not pending:', requestId);
+      const err = new Error('Solicitud no encontrada o no está pendiente') as any;
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+    
+    // Update status to 'rechazada'
+    const { data: rejected, error: updateError } = await supabase
+      .from('reservations')
+      .update({
+        status: 'rechazada',
+        cancellation_reason: reason,
+        cancelled_by: adminId,
+        cancelled_at: new Date().toISOString(),
+      })
+      .eq('id', requestId)
+      .select()
+      .single();
+    
+    if (updateError) {
+      console.error('[rejectReservationRequest] Database error:', updateError);
+      throw updateError;
+    }
+    
+    // Record audit
+    console.log('[rejectReservationRequest] Recording audit...');
+    try {
+      await recordAudit({
+        user_id: adminId,
+        user_email: 'unknown',
+        user_role: 'admin',
+        operation: 'UPDATE',
+        entity: 'reservation',
+        entity_id: requestId,
+        summary: `Solicitud de reserva rechazada: ${request.subject} en ${request.reservation_date} - Razón: ${reason}`,
+      });
+    } catch (auditErr) {
+      console.error('[rejectReservationRequest] Audit error (non-blocking):', auditErr);
+    }
+    
+    console.log('[rejectReservationRequest] Request rejected successfully:', requestId);
+    return rejected;
+  } catch (err: any) {
+    console.error('[rejectReservationRequest] Error:', err);
+    throw err;
+  }
+}
+
+/**
+ * Delete a pending reservation request
+ * Only the creator (profesor) can delete their own pending request
+ */
+export async function deleteReservationRequest(
+  requestId: string,
+  professorId: string,
+): Promise<{ success: boolean; message: string }> {
+  const supabase = getSupabaseAdmin();
+  
+  try {
+    console.log('[deleteReservationRequest] Deleting request:', requestId, 'by professor:', professorId);
+    
+    // Fetch the request first
+    const { data: request, error: fetchError } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('id', requestId)
+      .single();
+    
+    if (fetchError || !request) {
+      console.log('[deleteReservationRequest] Request not found:', requestId);
+      const err = new Error('Solicitud no encontrada') as any;
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+    
+    // Verify it's pending status
+    if (request.status !== 'pendiente') {
+      console.log('[deleteReservationRequest] Request is not pending:', requestId, 'status:', request.status);
+      const err = new Error('Solo se pueden borrar solicitudes pendientes') as any;
+      err.code = 'INVALID_STATUS';
+      throw err;
+    }
+    
+    // Verify ownership (professor_id or created_by must match)
+    if (request.professor_id !== professorId && request.created_by !== professorId) {
+      console.log('[deleteReservationRequest] Professor not owner:', requestId);
+      const err = new Error('No tienes permisos para borrar esta solicitud') as any;
+      err.code = 'FORBIDDEN';
+      throw err;
+    }
+    
+    // Delete the request (actually delete, not soft delete, since it's not confirmed)
+    const { error: deleteError } = await supabase
+      .from('reservations')
+      .delete()
+      .eq('id', requestId);
+    
+    if (deleteError) {
+      console.error('[deleteReservationRequest] Database error:', deleteError);
+      throw deleteError;
+    }
+    
+    // Record audit
+    console.log('[deleteReservationRequest] Recording audit...');
+    try {
+      await recordAudit({
+        user_id: professorId,
+        user_email: 'unknown',
+        user_role: 'profesor',
+        operation: 'DELETE',
+        entity: 'reservation',
+        entity_id: requestId,
+        summary: `Solicitud de reserva eliminada: ${request.subject} en ${request.reservation_date}`,
+      });
+    } catch (auditErr) {
+      console.error('[deleteReservationRequest] Audit error (non-blocking):', auditErr);
+    }
+    
+    console.log('[deleteReservationRequest] Request deleted successfully:', requestId);
+    return { success: true, message: 'Solicitud eliminada exitosamente' };
+  } catch (err: any) {
+    console.error('[deleteReservationRequest] Error:', err);
+    throw err;
   }
 }
