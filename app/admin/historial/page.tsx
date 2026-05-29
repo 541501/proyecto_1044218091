@@ -38,6 +38,8 @@ function HistorialContent() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [searchText, setSearchText] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deletingMultiple, setDeletingMultiple] = useState(false);
 
   // Cargar usuario actual y reservas
   useEffect(() => {
@@ -105,6 +107,58 @@ function HistorialContent() {
       }
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleSelectReservation = (reservationId: string) => {
+    const newSelected = new Set(selected);
+    if (newSelected.has(reservationId)) {
+      newSelected.delete(reservationId);
+    } else {
+      newSelected.add(reservationId);
+    }
+    setSelected(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selected.size === filtered.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filtered.map((r) => r.id)));
+    }
+  };
+
+  const handleDeleteMultiple = async () => {
+    if (selected.size === 0) {
+      return;
+    }
+
+    if (!window.confirm(`¿Estás seguro de que quieres eliminar ${selected.size} reserva${selected.size !== 1 ? 's' : ''} del historial?`)) {
+      return;
+    }
+
+    try {
+      setDeletingMultiple(true);
+      const deletePromises = Array.from(selected).map((id) =>
+        fetch(`/api/admin/reservations/${id}/delete`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        })
+      );
+
+      const results = await Promise.all(deletePromises);
+      const allSuccess = results.every((res) => res.ok);
+
+      if (allSuccess) {
+        setReservations((prev) => prev.filter((r) => !selected.has(r.id)));
+        setSelected(new Set());
+      } else {
+        alert('Error al eliminar algunas reservas');
+      }
+    } finally {
+      setDeletingMultiple(false);
     }
   };
 
@@ -190,6 +244,21 @@ function HistorialContent() {
           />
         ) : (
           <div className="space-y-3 overflow-x-auto">
+            {selected.size > 0 && (
+              <div className="flex items-center gap-3 p-4 bg-warn/10 border border-warn/30 rounded">
+                <span className="font-mono text-[11px] uppercase tracking-wide text-warn">
+                  {selected.size} reserva{selected.size !== 1 ? 's' : ''} seleccionada{selected.size !== 1 ? 's' : ''}
+                </span>
+                <button
+                  onClick={handleDeleteMultiple}
+                  disabled={deletingMultiple}
+                  className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-xs font-mono uppercase tracking-wide text-warn hover:text-warn-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <IconTrash size={14} />
+                  {deletingMultiple ? 'Eliminando...' : 'Eliminar seleccionadas'}
+                </button>
+              </div>
+            )}
             <div className="flex items-center gap-2 mb-4 font-mono text-[11px] uppercase tracking-wide text-ink-soft">
               <span>{filtered.length} reserva{filtered.length !== 1 ? 's' : ''}</span>
             </div>
@@ -198,6 +267,15 @@ function HistorialContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-rule bg-paper-soft">
+                    <th className="text-center px-4 py-3 font-mono text-[10px] uppercase tracking-wide text-ink-soft w-12">
+                      <input
+                        type="checkbox"
+                        checked={selected.size > 0 && selected.size === filtered.length}
+                        onChange={handleSelectAll}
+                        className="w-4 h-4 cursor-pointer"
+                        title={selected.size === filtered.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
+                      />
+                    </th>
                     <th className="text-left px-4 py-3 font-mono text-[10px] uppercase tracking-wide text-ink-soft">
                       Profesor
                     </th>
@@ -221,6 +299,15 @@ function HistorialContent() {
                 <tbody>
                   {filtered.map((r) => (
                     <tr key={r.id} className="border-b border-rule hover:bg-paper-soft transition-colors">
+                      <td className="text-center px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(r.id)}
+                          onChange={() => handleSelectReservation(r.id)}
+                          className="w-4 h-4 cursor-pointer"
+                          title="Seleccionar esta reserva"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-ink">{((r as any).professorName || r.professor_name || 'Desconocido')}</div>
                       </td>
