@@ -100,6 +100,11 @@ export interface Reservation {
   approved_at: string | null; // When the request was approved
   created_by: string;
   created_at: string;
+  // Optional joined objects from API responses
+  room?: { code: string; block_id: string };
+  slot?: { name: string; start_time: string; end_time: string };
+  block?: { code: string; name: string };
+  professor?: { name: string; email: string };
 }
 
 // ============================================================================
