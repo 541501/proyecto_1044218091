@@ -110,30 +110,28 @@ function HistorialContent() {
     }
   };
 
-  const handleSelectReservation = (reservationId: string) => {
-    setSelected((prev) => {
-      if (prev.includes(reservationId)) {
-        return prev.filter((id) => id !== reservationId);
-      } else {
-        return [...prev, reservationId];
-      }
-    });
+  const handleSelectReservation = (reservationId: string, checked: boolean) => {
+    if (checked) {
+      setSelected((prev) => [...prev, reservationId]);
+    } else {
+      setSelected((prev) => prev.filter((id) => id !== reservationId));
+    }
   };
 
   const handleSelectReservationClick = (e: React.ChangeEvent<HTMLInputElement>, reservationId: string) => {
-    handleSelectReservation(reservationId);
+    handleSelectReservation(reservationId, e.currentTarget.checked);
   };
 
-  const handleSelectAll = () => {
-    if (selected.length === filtered.length && filtered.length > 0) {
-      setSelected([]);
-    } else {
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.currentTarget.checked) {
       setSelected(filtered.map((r) => r.id));
+    } else {
+      setSelected([]);
     }
   };
 
   const handleSelectAllClick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleSelectAll();
+    handleSelectAll(e);
   };
 
   const handleDeleteMultiple = async () => {
