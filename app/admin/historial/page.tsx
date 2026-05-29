@@ -253,7 +253,7 @@ function HistorialContent() {
                       <input
                         type="checkbox"
                         checked={filtered.length > 0 && selected.length === filtered.length}
-                        onClick={() => {
+                        onChange={() => {
                           if (selected.length === filtered.length && filtered.length > 0) {
                             setSelected([]);
                           } else {
@@ -291,7 +291,7 @@ function HistorialContent() {
                         <input
                           type="checkbox"
                           checked={selected.includes(r.id)}
-                          onClick={() => {
+                          onChange={() => {
                             if (selected.includes(r.id)) {
                               setSelected(selected.filter((id) => id !== r.id));
                             } else {
