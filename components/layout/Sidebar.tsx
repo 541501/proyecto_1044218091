@@ -36,9 +36,9 @@ interface NavItem {
 const ROLE_LABEL: Record<UserRole, string> = {
   profesor: 'Docente',
   coordinador: 'Coordinación',
-  escuela_psicologia: 'Escuela Psicología',
-  escuela_derecho: 'Escuela Derecho',
-  escuela_ciencias: 'Escuela Ciencias Exactas e Ing',
+  esc_psicologia: 'Escuela Psicología',
+  esc_derecho: 'Escuela Derecho',
+  esc_ciencias: 'Escuela Ciencias Exactas e Ing',
   admin: 'Administración',
 };
 

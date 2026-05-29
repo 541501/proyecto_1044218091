@@ -524,7 +524,7 @@ export async function createReservation(
     // Determinar el status según el rol
     // Profesor: crea solicitud (pendiente)
     // Admin/Coordinador: crea reserva confirmada (confirmada)
-    const isCoordinadorOrAdmin = userRole === 'admin' || userRole === 'coordinador' || userRole.startsWith('escuela_');
+    const isCoordinadorOrAdmin = userRole === 'admin' || userRole === 'coordinador' || userRole.startsWith('esc_');
     const status = userRole === 'profesor' ? 'pendiente' : 'confirmada';
     console.log('[createReservation] Using status:', status, 'for role:', userRole);
     
@@ -737,7 +737,7 @@ export async function cancelReservation(
       }
     }
 
-    const isCoordinador = role === 'coordinador' || role.startsWith('escuela_');
+    const isCoordinador = role === 'coordinador' || role.startsWith('esc_');
     if ((isCoordinador || role === 'admin') && !reason) {
       const err = new Error(
         'El motivo de cancelación es obligatorio para coordinadores y administradores',

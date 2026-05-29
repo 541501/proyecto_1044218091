@@ -48,7 +48,7 @@ const getCreateReservationSchema = (role: string | undefined) => {
 };
 
 export async function GET(request: NextRequest) {
-  return withRole(['coordinador', 'escuela_psicologia', 'escuela_derecho', 'escuela_ciencias', 'admin'])(async (req: NextRequest, user: JWTPayload) => {
+  return withRole(['coordinador', 'esc_psicologia', 'esc_derecho', 'esc_ciencias', 'admin'])(async (req: NextRequest, user: JWTPayload) => {
     try {
       const searchParams = req.nextUrl.searchParams;
       const blockId = searchParams.get('blockId') || undefined;

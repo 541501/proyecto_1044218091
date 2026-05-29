@@ -84,4 +84,4 @@ async function handler(request: NextRequest) {
 }
 
 // Apply role-based access control
-export const GET = withRole(['coordinador', 'escuela_psicologia', 'escuela_derecho', 'escuela_ciencias', 'admin'])(handler);
+export const GET = withRole(['coordinador', 'esc_psicologia', 'esc_derecho', 'esc_ciencias', 'admin'])(handler);

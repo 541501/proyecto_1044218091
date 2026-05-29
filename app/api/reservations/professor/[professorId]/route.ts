@@ -14,7 +14,7 @@ export async function GET(
   { params }: { params: Promise<{ professorId: string }> }
 ) {
   const resolvedParams = await params;
-  return withRole(['coordinador', 'escuela_psicologia', 'escuela_derecho', 'escuela_ciencias', 'admin'])(
+  return withRole(['coordinador', 'esc_psicologia', 'esc_derecho', 'esc_ciencias', 'admin'])(
     async (req: NextRequest, user: JWTPayload) => {
       try {
         const professorId = resolvedParams.professorId;

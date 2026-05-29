@@ -18,7 +18,7 @@ export const GET = authenticatedRoute(async (req: NextRequest, user: JWTPayload)
       .from('users')
       .select('id, name, email, role')
       .eq('is_active', true)
-      .in('role', ['profesor', 'coordinador', 'escuela_psicologia', 'escuela_derecho', 'escuela_ciencias', 'admin'])
+      .in('role', ['profesor', 'coordinador', 'esc_psicologia', 'esc_derecho', 'esc_ciencias', 'admin'])
       .order('name', { ascending: true });
 
     if (error) {

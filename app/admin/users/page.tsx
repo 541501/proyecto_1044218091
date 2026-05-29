@@ -18,7 +18,7 @@ import {
   IconTrash,
 } from '@/components/icons';
 
-type Role = 'profesor' | 'coordinador' | 'escuela_psicologia' | 'escuela_derecho' | 'escuela_ciencias' | 'admin';
+type Role = 'profesor' | 'coordinador' | 'esc_psicologia' | 'esc_derecho' | 'esc_ciencias' | 'admin';
 
 interface UserRow {
   id: string;
@@ -32,16 +32,16 @@ interface UserRow {
 const ROLE_LABEL: Record<Role, string> = {
   profesor: 'Profesor',
   coordinador: 'Escuela',
-  escuela_psicologia: 'Escuela Psicología',
-  escuela_derecho: 'Escuela Derecho',
-  escuela_ciencias: 'Escuela Ciencias Exactas e Ing',
+  esc_psicologia: 'Escuela Psicología',
+  esc_derecho: 'Escuela Derecho',
+  esc_ciencias: 'Escuela Ciencias Exactas e Ing',
   admin: 'Administrador',
 };
 
 const SCHOOL_OPTIONS = [
-  { value: 'escuela_psicologia', label: 'Psicología' },
-  { value: 'escuela_derecho', label: 'Derecho' },
-  { value: 'escuela_ciencias', label: 'Ciencias Exactas e Ing' },
+  { value: 'esc_psicologia', label: 'Psicología' },
+  { value: 'esc_derecho', label: 'Derecho' },
+  { value: 'esc_ciencias', label: 'Ciencias Exactas e Ing' },
 ] as const;
 
 const getRealRole = (uiRole: Role, specialty?: string): Role => {
@@ -52,7 +52,7 @@ const getRealRole = (uiRole: Role, specialty?: string): Role => {
 };
 
 const getUIRole = (realRole: Role): { role: 'profesor' | 'coordinador' | 'admin'; specialty?: string } => {
-  if (realRole.startsWith('escuela_')) {
+  if (realRole.startsWith('esc_')) {
     return { role: 'coordinador', specialty: realRole };
   }
   return { role: realRole as 'profesor' | 'admin' };
@@ -70,7 +70,7 @@ export default function AdminUsersPage() {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<Role>('profesor');
-  const [newCoordinadorSpecialty, setNewCoordinadorSpecialty] = useState<string>('escuela_psicologia');
+  const [newCoordinadorSpecialty, setNewCoordinadorSpecialty] = useState<string>('esc_psicologia');
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -81,7 +81,7 @@ export default function AdminUsersPage() {
   const [editTarget, setEditTarget] = useState<UserRow | null>(null);
   const [editName, setEditName] = useState('');
   const [editRole, setEditRole] = useState<Role>('profesor');
-  const [editCoordinadorSpecialty, setEditCoordinadorSpecialty] = useState<string>('escuela_psicologia');
+  const [editCoordinadorSpecialty, setEditCoordinadorSpecialty] = useState<string>('esc_psicologia');
   const [editActive, setEditActive] = useState(true);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -118,7 +118,7 @@ export default function AdminUsersPage() {
       setCreateError('Nombre y email son requeridos.');
       return;
     }
-    if (newRole.startsWith('escuela_') && !newCoordinadorSpecialty) {
+    if (newRole.startsWith('esc_') && !newCoordinadorSpecialty) {
       setCreateError('Debe seleccionar una especialidad.');
       return;
     }
@@ -156,7 +156,7 @@ export default function AdminUsersPage() {
     setNewName('');
     setNewEmail('');
     setNewRole('profesor');
-    setNewCoordinadorSpecialty('escuela_psicologia');
+    setNewCoordinadorSpecialty('esc_psicologia');
     setTempPassword(null);
     setCreateError(null);
   };
@@ -167,7 +167,7 @@ export default function AdminUsersPage() {
     setEditName(u.name);
     setEditRole(uiRole.role as Role);
     if (u.role === 'coordinador') {
-      setEditCoordinadorSpecialty('escuela_psicologia');
+      setEditCoordinadorSpecialty('esc_psicologia');
     } else if (uiRole.specialty) {
       setEditCoordinadorSpecialty(uiRole.specialty);
     }
@@ -467,14 +467,14 @@ export default function AdminUsersPage() {
                 <div className="space-y-3">
                   <div className="grid grid-cols-3 gap-2">
                     {(['profesor', 'coordinador', 'admin'] as const).map((r) => {
-                      const active = newRole === r || (newRole.startsWith('escuela_') && r === 'coordinador');
+                      const active = newRole === r || (newRole.startsWith('esc_') && r === 'coordinador');
                       return (
                         <button
                           key={r}
                           type="button"
                           onClick={() => {
                             if (r === 'coordinador') {
-                              setNewRole('escuela_psicologia');
+                              setNewRole('esc_psicologia');
                             } else {
                               setNewRole(r);
                             }
@@ -494,7 +494,7 @@ export default function AdminUsersPage() {
                     })}
                   </div>
                   
-                  {(newRole === 'coordinador' || newRole.startsWith('escuela_')) && (
+                  {(newRole === 'coordinador' || newRole.startsWith('esc_')) && (
                     <div>
                       <div className="text-xs font-mono text-ink-soft mb-2">Especialidad</div>
                       <div className="grid grid-cols-3 gap-2">
@@ -570,7 +570,7 @@ export default function AdminUsersPage() {
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
                   {(['profesor', 'coordinador', 'admin'] as const).map((r) => {
-                    const active = editRole === r || (editRole.startsWith('escuela_') && r === 'coordinador');
+                    const active = editRole === r || (editRole.startsWith('esc_') && r === 'coordinador');
                     return (
                       <button
                         key={r}
@@ -597,7 +597,7 @@ export default function AdminUsersPage() {
                   })}
                 </div>
                 
-                {(editRole === 'coordinador' || editRole.startsWith('escuela_')) && (
+                {(editRole === 'coordinador' || editRole.startsWith('esc_')) && (
                   <div>
                     <div className="text-xs font-mono text-ink-soft mb-2">Especialidad</div>
                     <div className="grid grid-cols-3 gap-2">
@@ -608,7 +608,7 @@ export default function AdminUsersPage() {
                             key={opt.value}
                             type="button"
                             onClick={() => {
-                              setEditCoordinadorSpecialty(opt.value);
+                              setEditCoordinadorSpecialty(opt.value as string);
                               setEditRole(opt.value as Role);
                             }}
                             className={[

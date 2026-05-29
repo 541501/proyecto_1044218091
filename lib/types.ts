@@ -2,7 +2,7 @@
 // AUTH AND USER TYPES
 // ============================================================================
 
-export type UserRole = 'profesor' | 'coordinador' | 'escuela_psicologia' | 'escuela_derecho' | 'escuela_ciencias' | 'admin';
+export type UserRole = 'profesor' | 'coordinador' | 'esc_psicologia' | 'esc_derecho' | 'esc_ciencias' | 'admin';
 
 export interface User {
   id: string;
