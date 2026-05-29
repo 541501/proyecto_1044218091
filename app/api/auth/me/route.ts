@@ -13,7 +13,19 @@ async function handleMe(req: NextRequest, user: any) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const fullUser = await getUserById(user.userId);
+    // Add timeout to database query
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Database query timeout')), 10000)
+    );
+
+    let fullUser: User | null;
+    try {
+      fullUser = await Promise.race([getUserById(user.userId), timeoutPromise as Promise<User>]);
+    } catch (dbErr) {
+      const errorMsg = dbErr instanceof Error ? dbErr.message : 'Database error';
+      console.error('[me] Database query failed:', errorMsg);
+      return NextResponse.json({ error: 'Database timeout or error' }, { status: 500 });
+    }
     
     if (!fullUser) {
       console.log('[me] User not found in database for ID:', user.userId);

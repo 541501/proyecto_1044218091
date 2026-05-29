@@ -57,6 +57,10 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    let mounted = true;
+    let meTimeoutId: NodeJS.Timeout | undefined;
+    let dashTimeoutId: NodeJS.Timeout | undefined;
+
     (async () => {
       try {
         console.log('[dashboard] Loading user data...');
@@ -73,7 +77,7 @@ export default function DashboardPage() {
             // Check if user must change password
             if (userData.must_change_password) {
               console.log('[dashboard] User must change password');
-              router.push('/profile?action=change-password');
+              if (mounted) router.push('/profile?action=change-password');
               return;
             }
           }
@@ -83,57 +87,85 @@ export default function DashboardPage() {
         if (!userData) {
           console.log('[dashboard] Fetching user from server...');
           const meController = new AbortController();
-          const meTimeoutId = setTimeout(() => meController.abort(), 10000);
+          meTimeoutId = setTimeout(() => {
+            console.log('[dashboard] /api/auth/me timeout (15s)');
+            meController.abort();
+          }, 15000);
           
-          const meRes = await fetch('/api/auth/me', { 
-            credentials: 'include',
-            signal: meController.signal 
-          });
-          clearTimeout(meTimeoutId);
-          
-          console.log('[dashboard] /api/auth/me response:', meRes.status);
-          
-          if (!meRes.ok) {
-            const errorData = await meRes.json().catch(() => ({}));
-            console.error('[dashboard] Auth error:', errorData);
-            throw new Error(errorData.error || 'Not authenticated');
+          try {
+            const meRes = await fetch('/api/auth/me', { 
+              credentials: 'include',
+              signal: meController.signal 
+            });
+            clearTimeout(meTimeoutId);
+            
+            console.log('[dashboard] /api/auth/me response:', meRes.status);
+            
+            if (!meRes.ok) {
+              const errorData = await meRes.json().catch(() => ({}));
+              console.error('[dashboard] Auth error:', meRes.status, errorData);
+              if (mounted) {
+                setTimeout(() => router.push('/login'), 300);
+              }
+              return;
+            }
+            
+            const meData = await meRes.json();
+            console.log('[dashboard] User data received from server:', meData.user?.email);
+            userData = meData.user;
+          } catch (fetchErr) {
+            if (mounted) {
+              console.error('[dashboard] Fetch error:', fetchErr);
+              // Timeout or network error - redirect to login
+              setTimeout(() => router.push('/login'), 300);
+            }
+            return;
           }
-          
-          const meData = await meRes.json();
-          console.log('[dashboard] User data received from server:', meData.user?.email);
-          userData = meData.user;
         }
 
-        setUser(userData);
-        console.log('[dashboard] User set successfully');
+        if (userData && mounted) {
+          setUser(userData);
+          console.log('[dashboard] User set successfully');
 
-        // Try to fetch dashboard data, but don't fail if it doesn't exist
-        try {
-          const dashController = new AbortController();
-          const dashTimeoutId = setTimeout(() => dashController.abort(), 10000);
-          
-          const dashRes = await fetch('/api/dashboard', { 
-            credentials: 'include',
-            signal: dashController.signal 
-          });
-          clearTimeout(dashTimeoutId);
-          
-          if (dashRes.ok) {
-            const dashData = await dashRes.json();
-            setDashboardData(dashData.data ?? dashData);
+          // Try to fetch dashboard data, but don't fail if it doesn't exist
+          try {
+            const dashController = new AbortController();
+            dashTimeoutId = setTimeout(() => {
+              console.log('[dashboard] Dashboard data timeout (10s)');
+              dashController.abort();
+            }, 10000);
+            
+            const dashRes = await fetch('/api/dashboard', { 
+              credentials: 'include',
+              signal: dashController.signal 
+            });
+            clearTimeout(dashTimeoutId);
+            
+            if (dashRes.ok) {
+              const dashData = await dashRes.json();
+              if (mounted) setDashboardData(dashData.data ?? dashData);
+            }
+          } catch (dashErr) {
+            console.warn('[dashboard] Dashboard data fetch failed (non-blocking):', dashErr);
+            // Continue anyway - dashboard data is optional
           }
-        } catch (dashErr) {
-          console.warn('[dashboard] Dashboard data fetch failed (non-blocking):', dashErr);
-          // Continue anyway - dashboard data is optional
         }
       } catch (err) {
         console.error('[dashboard] Load error:', err);
-        // Dar un pequeño delay antes de redirigir para evitar loops
-        setTimeout(() => router.push('/login'), 500);
+        if (mounted) {
+          // Dar un pequeño delay antes de redirigir para evitar loops
+          setTimeout(() => router.push('/login'), 500);
+        }
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     })();
+
+    return () => {
+      mounted = false;
+      clearTimeout(meTimeoutId);
+      clearTimeout(dashTimeoutId);
+    };
   }, [router]);
 
   if (loading || !user) {

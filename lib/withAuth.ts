@@ -28,7 +28,22 @@ export async function withAuth(
     }
 
     console.log('[withAuth] Token found, verifying...');
-    const user = await verifyJWT(token);
+    
+    // Add timeout to JWT verification
+    const verifyPromise = verifyJWT(token);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('JWT verification timeout')), 5000)
+    );
+
+    let user: JWTPayload;
+    try {
+      user = await Promise.race([verifyPromise, timeoutPromise as Promise<JWTPayload>]);
+    } catch (verifyErr) {
+      const errorMsg = verifyErr instanceof Error ? verifyErr.message : 'Verification error';
+      console.error('[withAuth] JWT verification failed:', errorMsg);
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
     console.log('[withAuth] Token verified for user:', user.email);
 
     // Call the handler with the user context
