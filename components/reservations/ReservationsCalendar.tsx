@@ -249,7 +249,11 @@ export default function ReservationsCalendar({ reservations }: Props) {
                             )}
                           </div>
                         </div>
-                      ) : null}
+                      ) : (
+                        <div className="font-mono text-[10px] text-ink-mute/40">
+                          {slotName}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
