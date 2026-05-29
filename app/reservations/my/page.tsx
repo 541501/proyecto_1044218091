@@ -17,6 +17,8 @@ import {
   IconClock,
   IconColumns,
   IconArrowRight,
+  IconChevronDown,
+  IconChevronRight,
 } from '@/components/icons';
 
 interface User {
@@ -50,6 +52,7 @@ function MyReservationsContent() {
   const [successMessage, setSuccessMessage] = useState('');
   const [filter, setFilter] = useState<'all' | 'pendiente' | 'confirmada' | 'rechazada' | 'cancelada'>('confirmada');
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     (async () => {
@@ -145,6 +148,35 @@ function MyReservationsContent() {
   };
 
   const filtered = reservations.filter((r) => (filter === 'all' ? true : r.status === filter));
+
+  // Agrupar reservas recurrentes: mostrar padres con instancias anidadas
+  const grouped = (() => {
+    const result: (Reservation | { isGroup: true; parent: Reservation; instances: Reservation[] })[] = [];
+    const parentIds = new Set<string>();
+    
+    filtered.forEach((r) => {
+      // Si es una instancia de recurrente, saltar (se mostrará con su padre)
+      if (r.parent_reservation_id) {
+        return;
+      }
+      
+      // Si es una reserva recurrente, crear grupo
+      if (r.is_recurring) {
+        parentIds.add(r.id);
+        const instances = filtered.filter((inst) => inst.parent_reservation_id === r.id);
+        result.push({
+          isGroup: true,
+          parent: r,
+          instances: instances,
+        });
+      } else {
+        // Reserva normal
+        result.push(r);
+      }
+    });
+    
+    return result;
+  })();
 
   const fmtDate = (s: string) =>
     new Date(s).toLocaleDateString('es-CO', {
@@ -265,105 +297,174 @@ function MyReservationsContent() {
           <ReservationsCalendar reservations={filtered} userId={user?.id} />
         ) : (
           <ul className="divide-y divide-rule border-y border-rule">
-            {filtered.map((r) => (
-              <li
-                key={r.id}
-                className={[
-                  'py-5 group',
-                  r.status === 'cancelada' ? 'opacity-60' : '',
-                ].join(' ')}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="font-mono text-[11px] uppercase tracking-wide text-ink-mute">
-                        {r.room?.code ?? '—'}
-                      </span>
-                      {isRequestedByUser(r) ? (
-                        <Badge variant="info">Solicitud Aprobada</Badge>
-                      ) : r.status === 'confirmada' ? (
-                        <Badge variant="success">Confirmada</Badge>
-                      ) : r.status === 'pendiente' ? (
-                        <Badge variant="default">Pendiente</Badge>
-                      ) : r.status === 'rechazada' ? (
-                        <Badge variant="warning">Rechazada</Badge>
-                      ) : (
-                        <Badge variant="default">Cancelada</Badge>
-                      )}
-                    </div>
-                    <h3 className="font-display text-2xl text-ink leading-tight mt-1.5">
-                      {r.subject}
-                    </h3>
-                    <div className="mt-2 text-sm text-ink-soft flex flex-wrap items-center gap-x-5 gap-y-1">
-                      <span className="inline-flex items-center gap-1.5">
-                        <IconColumns size={14} />
-                        {r.room?.code ?? '—'}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <IconClock size={14} />
-                        {r.slot?.name ?? '—'}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <IconCalendar size={14} />
-                        <span className="capitalize">{fmtDate(r.reservation_date)}</span>
-                      </span>
-                      <span className="font-mono text-[12px] text-ink-mute">
-                        Grupo: {r.group_name}
-                      </span>
-                      {r.professor_name ? (
-                        <span className="inline-block px-2 py-1 bg-accent/20 border border-accent/40 rounded text-[11px] font-mono uppercase tracking-wide text-accent">
-                          @{r.professor_name}
+            {grouped.map((item) => {
+              const isGroup = 'isGroup' in item && item.isGroup;
+              const r: Reservation = isGroup ? (item as any).parent : (item as Reservation);
+              const isExpanded = isGroup && expandedParents.has(r.id);
+              const instanceCount = isGroup ? (item as any).instances.length : 0;
+
+              return (
+                <li key={r.id} className={['py-5 group', r.status === 'cancelada' ? 'opacity-60' : ''].join(' ')}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {isGroup && (
+                          <button
+                            onClick={() => {
+                              const newExpanded = new Set(expandedParents);
+                              if (isExpanded) {
+                                newExpanded.delete(r.id);
+                              } else {
+                                newExpanded.add(r.id);
+                              }
+                              setExpandedParents(newExpanded);
+                            }}
+                            className="inline-flex items-center gap-1 text-brand hover:text-brand-dark transition-colors"
+                            title={isExpanded ? 'Contraer' : 'Expandir'}
+                          >
+                            {isExpanded ? (
+                              <IconChevronDown size={18} />
+                            ) : (
+                              <IconChevronRight size={18} />
+                            )}
+                          </button>
+                        )}
+                        <span className="font-mono text-[11px] uppercase tracking-wide text-ink-mute">
+                          {r.room?.code ?? '—'}
                         </span>
+                        {isGroup && (
+                          <span className="font-mono text-[10px] uppercase tracking-wide text-accent bg-accent/10 px-2 py-1 rounded">
+                            {instanceCount} semanas
+                          </span>
+                        )}
+                        {isRequestedByUser(r) ? (
+                          <Badge variant="info">Solicitud Aprobada</Badge>
+                        ) : r.status === 'confirmada' ? (
+                          <Badge variant="success">Confirmada</Badge>
+                        ) : r.status === 'pendiente' ? (
+                          <Badge variant="default">Pendiente</Badge>
+                        ) : r.status === 'rechazada' ? (
+                          <Badge variant="warning">Rechazada</Badge>
+                        ) : (
+                          <Badge variant="default">Cancelada</Badge>
+                        )}
+                      </div>
+                      <h3 className="font-display text-2xl text-ink leading-tight mt-1.5">
+                        {r.subject}
+                      </h3>
+                      <div className="mt-2 text-sm text-ink-soft flex flex-wrap items-center gap-x-5 gap-y-1">
+                        <span className="inline-flex items-center gap-1.5">
+                          <IconColumns size={14} />
+                          {r.room?.code ?? '—'}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <IconClock size={14} />
+                          {r.slot?.name ?? '—'}
+                        </span>
+                        {!isGroup && (
+                          <span className="inline-flex items-center gap-1.5">
+                            <IconCalendar size={14} />
+                            <span className="capitalize">{fmtDate(r.reservation_date)}</span>
+                          </span>
+                        )}
+                        {isGroup && (
+                          <span className="inline-flex items-center gap-1.5">
+                            <IconCalendar size={14} />
+                            <span className="capitalize text-xs">Desde {fmtDate(r.reservation_date)} (recurrente)</span>
+                          </span>
+                        )}
+                        <span className="font-mono text-[12px] text-ink-mute">
+                          Grupo: {r.group_name}
+                        </span>
+                        {r.professor_name ? (
+                          <span className="inline-block px-2 py-1 bg-accent/20 border border-accent/40 rounded text-[11px] font-mono uppercase tracking-wide text-accent">
+                            @{r.professor_name}
+                          </span>
+                        ) : null}
+                      </div>
+                      {r.status === 'cancelada' && r.cancellation_reason ? (
+                        <div className="mt-3 text-sm text-ink-soft italic border-l-2 border-rule pl-3">
+                          {r.cancellation_reason}
+                        </div>
                       ) : null}
                     </div>
-                    {r.status === 'cancelada' && r.cancellation_reason ? (
-                      <div className="mt-3 text-sm text-ink-soft italic border-l-2 border-rule pl-3">
-                        {r.cancellation_reason}
-                      </div>
+
+                    {isRequestedByUser(r) ? (
+                      <button
+                        onClick={() => {
+                          setSelected(r);
+                          setShowDeleteModal(true);
+                        }}
+                        className="text-ink-mute hover:text-bad transition-colors p-2"
+                        aria-label="Borrar reserva"
+                        title="Borrar esta reserva después de la clase"
+                      >
+                        <IconTrash size={18} />
+                      </button>
+                    ) : r.status === 'pendiente' ? (
+                      <button
+                        onClick={() => {
+                          setSelected(r);
+                          setShowDeleteModal(true);
+                        }}
+                        className="text-ink-mute hover:text-bad transition-colors p-2"
+                        aria-label="Eliminar solicitud"
+                        title="Eliminar esta solicitud pendiente"
+                      >
+                        <IconTrash size={18} />
+                      </button>
+                    ) : canCancel(r) ? (
+                      <button
+                        onClick={() => {
+                          setSelected(r);
+                          setCancelReason('');
+                          setShowCancelModal(true);
+                        }}
+                        className="text-ink-mute hover:text-bad transition-colors p-2"
+                        aria-label="Cancelar reserva"
+                        title="Cancelar esta reserva confirmada"
+                      >
+                        <IconTrash size={18} />
+                      </button>
                     ) : null}
                   </div>
 
-                  {isRequestedByUser(r) ? (
-                    <button
-                      onClick={() => {
-                        setSelected(r);
-                        setShowDeleteModal(true);
-                      }}
-                      className="text-ink-mute hover:text-bad transition-colors p-2"
-                      aria-label="Borrar reserva"
-                      title="Borrar esta reserva después de la clase"
-                    >
-                      <IconTrash size={18} />
-                    </button>
-                  ) : r.status === 'pendiente' ? (
-                    <button
-                      onClick={() => {
-                        setSelected(r);
-                        setShowDeleteModal(true);
-                      }}
-                      className="text-ink-mute hover:text-bad transition-colors p-2"
-                      aria-label="Eliminar solicitud"
-                      title="Eliminar esta solicitud pendiente"
-                    >
-                      <IconTrash size={18} />
-                    </button>
-                  ) : canCancel(r) ? (
-                    <button
-                      onClick={() => {
-                        setSelected(r);
-                        setCancelReason('');
-                        setShowCancelModal(true);
-                      }}
-                      className="text-ink-mute hover:text-bad transition-colors p-2"
-                      aria-label="Cancelar reserva"
-                      title="Cancelar esta reserva confirmada"
-                    >
-                      <IconTrash size={18} />
-                    </button>
-                  ) : null}
-                </div>
-              </li>
-            ))}
+                  {/* Expandable instances for recurring reservations */}
+                  {isGroup && isExpanded && (
+                    <div className="mt-4 pl-8 space-y-3 border-l-2 border-accent/30">
+                      {item.instances.map((instance) => (
+                        <div key={instance.id} className="text-sm">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+                                {instance.slot?.name ?? '—'}
+                              </div>
+                              <div className="font-medium text-ink capitalize">
+                                {fmtDate(instance.reservation_date)}
+                              </div>
+                              <div className="text-xs text-ink-soft mt-1">
+                                {instance.group_name}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setSelected(instance);
+                                setShowDeleteModal(true);
+                              }}
+                              className="text-ink-mute hover:text-bad transition-colors p-1"
+                              aria-label="Eliminar esta instancia"
+                              title="Eliminar esta instancia"
+                            >
+                              <IconTrash size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
 
