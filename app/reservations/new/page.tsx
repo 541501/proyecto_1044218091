@@ -105,8 +105,12 @@ function NewReservationContent() {
       reservation_date: selectedDate,
       subject: subject.trim(),
       group_name: groupName.trim(),
-      reason: reason.trim() || undefined,
     };
+
+    // Solo incluir reason si tiene valor
+    if (reason.trim()) {
+      payload.reason = reason.trim();
+    }
 
     // Solo incluir professor_name y professor_id si hay profesor seleccionado
     if (selectedProfessor?.name) {
