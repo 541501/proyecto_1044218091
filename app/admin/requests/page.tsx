@@ -6,7 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
-import { IconDot, IconCheck, IconAlert, IconLoader } from '@/components/icons';
+import { IconDot, IconCheck, IconAlert } from '@/components/icons';
 
 interface ReservationRequest {
   id: string;
@@ -243,7 +243,7 @@ function RequestsContent() {
                   >
                     {processingId === req.id ? (
                       <>
-                        <IconLoader size={14} className="animate-spin" />
+                        <div className="w-3 h-3 border-2 border-paper border-t-transparent rounded-full animate-spin" />
                         Procesando…
                       </>
                     ) : (
