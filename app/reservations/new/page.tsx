@@ -311,10 +311,10 @@ function NewReservationContent() {
                 type="submit"
                 variant="primary"
                 isLoading={loading}
-                disabled={loading || isDateInvalid || !subject.trim() || !groupName.trim() || !reason.trim()}
+                disabled={loading || isDateInvalid || !subject.trim() || !groupName.trim() || (user?.role === 'profesor' && !reason.trim())}
               >
                 <IconCheck size={14} />
-                Confirmar solicitud
+                {user?.role === 'profesor' ? 'Confirmar solicitud' : 'Confirmar reserva'}
               </Button>
             </div>
           </form>

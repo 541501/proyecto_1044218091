@@ -487,10 +487,11 @@ export async function getMyReservations(
 export async function createReservation(
   userId: string,
   data: CreateReservationRequest,
+  userRole: 'profesor' | 'coordinador' | 'admin' = 'profesor',
 ): Promise<Reservation> {
   const { validateReservationRules, checkConflict } = await import('./reservationService');
 
-  console.log('[createReservation] Starting for user:', userId, 'data:', data);
+  console.log('[createReservation] Starting for user:', userId, 'role:', userRole, 'data:', data);
 
   const validationErrors = validateReservationRules(data.reservation_date);
   if (validationErrors.length > 0) {
@@ -519,6 +520,12 @@ export async function createReservation(
     const professorId = data.professor_id || userId;
     console.log('[createReservation] Using professor_id:', professorId, data.professor_id ? '(tagged professor)' : '(creator)');
     
+    // Determinar el status según el rol
+    // Profesor: crea solicitud (pendiente)
+    // Admin/Coordinador: crea reserva confirmada (confirmada)
+    const status = userRole === 'profesor' ? 'pendiente' : 'confirmada';
+    console.log('[createReservation] Using status:', status, 'for role:', userRole);
+    
     const { data: reservation, error } = await supabase
       .from('reservations')
       .insert([
@@ -532,7 +539,7 @@ export async function createReservation(
           reason: data.reason || null,
           // TODO: professor_name field should be added after migration 0005 is applied
           // professor_name: data.professor_name || null,
-          status: 'pendiente',
+          status: status,
           created_by: userId,
           created_at: new Date().toISOString(),
         },
@@ -553,14 +560,18 @@ export async function createReservation(
 
     console.log('[createReservation] Recording audit...');
     try {
+      const auditSummary = status === 'pendiente' 
+        ? `Solicitud de reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date} (${data.group_name}) - Razón: ${data.reason || 'No especificada'}`
+        : `Reserva confirmada creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date} (${data.group_name})`;
+      
       await recordAudit({
         user_id: userId,
         user_email: 'unknown',
-        user_role: 'profesor',
+        user_role: userRole,
         operation: 'INSERT',
         entity: 'reservation',
         entity_id: reservation.id,
-        summary: `Solicitud de reserva creada: ${data.subject} en salón ${data.room_id} el ${data.reservation_date} (${data.group_name}) - Razón: ${data.reason || 'No especificada'}`,
+        summary: auditSummary,
       });
     } catch (auditErr) {
       console.error('[createReservation] Audit error (non-blocking):', auditErr);

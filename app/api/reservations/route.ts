@@ -100,8 +100,8 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
         : {})
     };
 
-    const reservation = await createReservation(user.userId, reservationData);
-    debugLogs.push(`[4] Created reservation: ${reservation.id}`);
+    const reservation = await createReservation(user.userId, reservationData, user.role);
+    debugLogs.push(`[4] Created reservation: ${reservation.id} with status: ${reservation.status}`);
 
     return NextResponse.json(reservation, { status: 201 });
   } catch (error: unknown) {
