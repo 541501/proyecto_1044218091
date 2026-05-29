@@ -55,4 +55,4 @@ async function createUser(email, name, password, role = 'profesor') {
 }
 
 // Crear el usuario
-await createUser('juan.gutierrez20@usa.edu.co', 'Juan Gutiérrez', '1044218091', 'profesor');
+await createUser('profesor.test@usa.edu.co', 'Profesor Test', '123456', 'profesor');
