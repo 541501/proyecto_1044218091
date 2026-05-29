@@ -38,7 +38,7 @@ function HistorialContent() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [searchText, setSearchText] = useState('');
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<string[]>([]);
   const [deletingMultiple, setDeletingMultiple] = useState(false);
 
   // Cargar usuario actual y reservas
@@ -111,45 +111,43 @@ function HistorialContent() {
   };
 
   const handleSelectReservation = (reservationId: string) => {
-    const newSelected = new Set(selected);
-    if (newSelected.has(reservationId)) {
-      newSelected.delete(reservationId);
-    } else {
-      newSelected.add(reservationId);
-    }
-    setSelected(newSelected);
+    setSelected((prev) => {
+      if (prev.includes(reservationId)) {
+        return prev.filter((id) => id !== reservationId);
+      } else {
+        return [...prev, reservationId];
+      }
+    });
   };
 
   const handleSelectReservationClick = (e: React.ChangeEvent<HTMLInputElement>, reservationId: string) => {
-    e.stopPropagation?.();
     handleSelectReservation(reservationId);
   };
 
   const handleSelectAll = () => {
-    if (selected.size === filtered.length && filtered.length > 0) {
-      setSelected(new Set());
+    if (selected.length === filtered.length && filtered.length > 0) {
+      setSelected([]);
     } else {
-      setSelected(new Set(filtered.map((r) => r.id)));
+      setSelected(filtered.map((r) => r.id));
     }
   };
 
   const handleSelectAllClick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.stopPropagation?.();
     handleSelectAll();
   };
 
   const handleDeleteMultiple = async () => {
-    if (selected.size === 0) {
+    if (selected.length === 0) {
       return;
     }
 
-    if (!window.confirm(`¿Estás seguro de que quieres eliminar ${selected.size} reserva${selected.size !== 1 ? 's' : ''} del historial?`)) {
+    if (!window.confirm(`¿Estás seguro de que quieres eliminar ${selected.length} reserva${selected.length !== 1 ? 's' : ''} del historial?`)) {
       return;
     }
 
     try {
       setDeletingMultiple(true);
-      const deletePromises = Array.from(selected).map((id) =>
+      const deletePromises = selected.map((id) =>
         fetch(`/api/admin/reservations/${id}/delete`, {
           method: 'POST',
           credentials: 'include',
@@ -162,8 +160,8 @@ function HistorialContent() {
       const allSuccess = results.every((res) => res.ok);
 
       if (allSuccess) {
-        setReservations((prev) => prev.filter((r) => !selected.has(r.id)));
-        setSelected(new Set());
+        setReservations((prev) => prev.filter((r) => !selected.includes(r.id)));
+        setSelected([]);
       } else {
         alert('Error al eliminar algunas reservas');
       }
@@ -254,10 +252,10 @@ function HistorialContent() {
           />
         ) : (
           <div className="space-y-3 overflow-x-auto">
-            {selected.size > 0 && (
+            {selected.length > 0 && (
               <div className="flex items-center gap-3 p-4 bg-warn/10 border border-warn/30 rounded">
                 <span className="font-mono text-[11px] uppercase tracking-wide text-warn">
-                  {selected.size} reserva{selected.size !== 1 ? 's' : ''} seleccionada{selected.size !== 1 ? 's' : ''}
+                  {selected.length} reserva{selected.length !== 1 ? 's' : ''} seleccionada{selected.length !== 1 ? 's' : ''}
                 </span>
                 <button
                   onClick={handleDeleteMultiple}
@@ -280,10 +278,10 @@ function HistorialContent() {
                     <th className="text-center px-4 py-3 font-mono text-[10px] uppercase tracking-wide text-ink-soft w-12">
                       <input
                         type="checkbox"
-                        checked={filtered.length > 0 && selected.size === filtered.length}
+                        checked={filtered.length > 0 && selected.length === filtered.length}
                         onChange={handleSelectAllClick}
                         className="w-4 h-4 cursor-pointer"
-                        title={filtered.length > 0 && selected.size === filtered.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
+                        title={filtered.length > 0 && selected.length === filtered.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
                       />
                     </th>
                     <th className="text-left px-4 py-3 font-mono text-[10px] uppercase tracking-wide text-ink-soft">
@@ -312,7 +310,7 @@ function HistorialContent() {
                       <td className="text-center px-4 py-3">
                         <input
                           type="checkbox"
-                          checked={selected.has(r.id)}
+                          checked={selected.includes(r.id)}
                           onChange={(e) => handleSelectReservationClick(e, r.id)}
                           className="w-4 h-4 cursor-pointer"
                           title="Seleccionar esta reserva"
