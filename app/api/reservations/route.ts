@@ -23,14 +23,24 @@ const BaseCreateReservationSchema = z.object({
   reason: z.string().max(500).optional()
 });
 
-// Schema para profesores (requiere razón)
-const ProfessorReservationSchema = BaseCreateReservationSchema.extend({
+// Schema para profesores (requiere razón) - completamente separado
+const ProfessorReservationSchema = z.object({
+  room_id: z.string().uuid('ID de sala inválido'),
+  slot_id: z.string().uuid('ID de franja inválido'),
+  reservation_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha debe ser formato YYYY-MM-DD'),
+  subject: z.string().min(1, 'Asignatura requerida').max(150),
+  group_name: z.string().min(1, 'Grupo requerido').max(50),
+  professor_name: z.string().max(100).optional(),
+  professor_id: z.string().uuid('ID de profesor inválido').optional(),
   reason: z.string().min(1, 'Razón de la solicitud requerida').max(500)
 });
 
 // Función para obtener el schema correcto según el rol
-const getCreateReservationSchema = (role: string) => {
-  return role === 'profesor' ? ProfessorReservationSchema : BaseCreateReservationSchema;
+const getCreateReservationSchema = (role: string | undefined) => {
+  if (role === 'profesor') {
+    return ProfessorReservationSchema;
+  }
+  return BaseCreateReservationSchema;
 };
 
 export async function GET(request: NextRequest) {
@@ -68,9 +78,9 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
     debugLogs.push(`[2] Body received: ${JSON.stringify(body)}`);
     
     // Obtener el schema correcto según el rol
-    const CreateReservationSchema = getCreateReservationSchema(user.role || 'profesor');
+    const CreateReservationSchema = getCreateReservationSchema(user.role);
     const validated = CreateReservationSchema.parse(body);
-    debugLogs.push(`[3] Validation passed`);
+    debugLogs.push(`[3] Validation passed for role: ${user.role}`);
 
     // Asegurar que professor_name y professor_id sean undefined si no existen o son vacíos
     const reservationData: CreateReservationRequest = {
