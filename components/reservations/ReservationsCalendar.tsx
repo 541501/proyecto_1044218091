@@ -113,7 +113,15 @@ export default function ReservationsCalendar({ reservations }: Props) {
   if (!isClient) return null;
 
   const { startStr, endStr } = getWeekRange(weekStart);
-  const SLOTS = ['07:00–09:00', '09:00–11:00', '11:00–13:00', '13:00–15:00', '15:00–17:00', '16:00–18:00', '18:00–20:00'];
+  const SLOTS = [
+    '07:00–09:00',
+    '09:00–11:00',
+    '11:00–13:00',
+    '13:00–15:00',
+    '15:00–17:00',
+    '16:00–18:00',
+    '18:00–20:00',
+  ];
   const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
   // Obtener los días de la semana
@@ -171,73 +179,83 @@ export default function ReservationsCalendar({ reservations }: Props) {
         </div>
       </div>
 
-      {/* Calendar Grid */}
+      {/* Calendar Grid - Exactly like the photo */}
       <div className="border border-rule rounded overflow-x-auto bg-paper">
-        <div className="grid gap-px bg-rule" style={{ gridTemplateColumns: '120px repeat(6, 1fr)' }}>
-          {/* Header - Slot column */}
-          <div className="bg-paper-soft border-r border-rule p-3 font-mono text-[10px] uppercase tracking-wide text-ink-mute sticky left-0 z-10">
-            FRANJA
-          </div>
-
-          {/* Header - Days */}
-          {weekDates.map((dateStr, idx) => {
-            const dateObj = new Date(dateStr);
-            return (
-              <div key={dateStr} className="bg-paper-soft border-r border-rule p-3 text-center">
-                <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
-                  {DAYS[idx]}
-                </div>
-                <div className="font-display text-lg text-ink mt-1 font-semibold">{dateObj.getDate().toString().padStart(2, '0')}</div>
-              </div>
-            );
-          })}
-
-          {/* Rows for each slot */}
-          {SLOTS.map((slotName) => (
-            <div key={`slot-row-${slotName}`}>
-              {/* Slot time label */}
-              <div className="bg-paper-soft border-r border-rule p-3 font-mono text-[10px] font-semibold text-ink sticky left-0 z-10">
-                {slotName}
-              </div>
-
-              {/* Cells for each day */}
-              {weekDates.map((dateStr) => {
-                const reservation = getReservationCell(dateStr, slotName);
-                const today = new Date().toISOString().split('T')[0];
-                const isToday = dateStr === today;
-
-                return (
-                  <div
-                    key={`${dateStr}-${slotName}`}
-                    className={`border-r border-rule p-3 min-h-[120px] flex flex-col justify-center ${
-                      isToday ? 'bg-accent/10' : 'bg-paper hover:bg-paper-soft'
-                    } transition-colors`}
-                  >
-                    {reservation ? (
-                      <div className="space-y-2">
-                        <div>
-                          <div className="font-display text-sm font-bold text-ink">
-                            {reservation.subject}
-                          </div>
-                          <div className="font-mono text-[9px] text-ink-mute mt-0.5">
-                            {reservation.room?.code ?? '—'}
-                          </div>
-                        </div>
-                        <div className="text-[10px] text-ink-soft space-y-1">
-                          <div>Grupo: {reservation.group_name}</div>
-                          {reservation.professor_name && (
-                            <div className="inline-block px-2 py-0.5 bg-accent/30 rounded text-accent font-mono text-[8px] uppercase tracking-wide">
-                              @{reservation.professor_name}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
+        <div className="inline-block min-w-full">
+          <div className="grid gap-0" style={{ gridTemplateColumns: '120px repeat(6, 1fr)' }}>
+            {/* Header Row */}
+            <div className="bg-paper-soft border-r border-b border-rule p-3 font-mono text-[11px] uppercase tracking-wide text-ink-mute font-semibold sticky left-0 z-20">
+              Franja
             </div>
-          ))}
+
+            {weekDates.map((dateStr, idx) => {
+              const dateObj = new Date(dateStr);
+              const dayStr = DAYS[idx].toUpperCase();
+              const dateFormatted = dateStr; // YYYY-MM-DD format
+              return (
+                <div
+                  key={`header-${dateStr}`}
+                  className="bg-paper-soft border-r border-b border-rule p-3 text-center"
+                >
+                  <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+                    {dayStr}
+                  </div>
+                  <div className="font-display text-base text-ink font-semibold mt-1">
+                    {dateFormatted}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Slot Rows */}
+            {SLOTS.map((slotName) => (
+              <div key={`slot-${slotName}`}>
+                {/* Slot label */}
+                <div className="bg-paper-soft border-r border-b border-rule p-3 font-mono text-[10px] uppercase tracking-wide text-ink-mute font-semibold sticky left-0 z-10">
+                  {slotName}
+                </div>
+
+                {/* Cells for each day in this slot */}
+                {weekDates.map((dateStr) => {
+                  const reservation = getReservationCell(dateStr, slotName);
+                  const today = new Date().toISOString().split('T')[0];
+                  const isToday = dateStr === today;
+
+                  return (
+                    <div
+                      key={`cell-${dateStr}-${slotName}`}
+                      className={`border-r border-b border-rule p-4 min-h-[100px] flex flex-col justify-center ${
+                        isToday ? 'bg-accent/10' : 'bg-paper'
+                      } ${!reservation ? 'hover:bg-paper-soft/50' : ''} transition-colors`}
+                    >
+                      {reservation ? (
+                        <div className="space-y-1.5">
+                          <div>
+                            <div className="font-display text-sm font-bold text-ink leading-tight">
+                              {reservation.subject}
+                            </div>
+                          </div>
+                          <div className="text-[10px] space-y-0.5">
+                            <div className="font-mono text-ink-mute">
+                              {reservation.slot?.name ?? slotName}
+                            </div>
+                            <div className="font-mono text-ink-mute">
+                              {reservation.room?.code ?? '—'}
+                            </div>
+                            {reservation.professor_name && (
+                              <div className="font-mono text-accent text-[9px]">
+                                {reservation.professor_name}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
