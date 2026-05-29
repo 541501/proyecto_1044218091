@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withRole } from '@/lib/withRole';
 import { rejectReservationRequest } from '@/lib/dataService';
 import { JWTPayload } from '@/lib/types';
-import { use } from 'react';
 import z from 'zod';
 
 const RejectSchema = z.object({
@@ -20,7 +19,7 @@ export const PUT = withRole(['admin'])(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
-    const { id } = use(params);
+    const { id } = await params;
     console.log('[PUT /api/admin/reservations/[id]/reject] Admin:', user.userId, 'Request:', id);
 
     if (!id) {

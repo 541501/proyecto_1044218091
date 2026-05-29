@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withRole } from '@/lib/withRole';
 import { approveReservationRequest } from '@/lib/dataService';
 import { JWTPayload } from '@/lib/types';
-import { use } from 'react';
 import z from 'zod';
 
 export const PUT = withRole(['admin'])(async (
@@ -16,7 +15,7 @@ export const PUT = withRole(['admin'])(async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
-    const { id } = use(params);
+    const { id } = await params;
     console.log('[PUT /api/admin/reservations/[id]/approve] Admin:', user.userId, 'Request:', id);
 
     if (!id) {
