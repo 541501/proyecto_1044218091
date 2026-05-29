@@ -113,6 +113,17 @@ export default function ReservationsCalendar({ reservations }: Props) {
   if (!isClient) return null;
 
   const { startStr, endStr } = getWeekRange(weekStart);
+
+  // Filtrar reservas de la semana actual y solo confirmadas
+  const weekReservations = reservations.filter(
+    (r) => r.reservation_date >= startStr && r.reservation_date <= endStr && r.status === 'confirmada'
+  );
+
+  // Construir estructura de días y slots
+  const [year, month, day] = weekStart.split('-').map(Number);
+  const start = new Date(year, month - 1, day);
+
+  const DAYS_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   const SLOTS = [
     '07:00–09:00',
     '09:00–11:00',
@@ -122,24 +133,19 @@ export default function ReservationsCalendar({ reservations }: Props) {
     '16:00–18:00',
     '18:00–20:00',
   ];
-  const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-  // Obtener los días de la semana
-  const [year, month, day] = weekStart.split('-').map(Number);
-  const start = new Date(year, month - 1, day);
-  const weekDates = Array.from({ length: 6 }, (_, i) => {
+  const calendarDays = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(start);
     d.setDate(d.getDate() + i);
-    return d.toISOString().split('T')[0];
+    const dateStr = d.toISOString().split('T')[0];
+    return {
+      date: dateStr,
+      dayName: DAYS_NAMES[i],
+      dayIndex: i,
+    };
   });
 
-  // Filtrar reservas de la semana actual y solo confirmadas
-  const weekReservations = reservations.filter(
-    (r) => r.reservation_date >= startStr && r.reservation_date <= endStr && r.status === 'confirmada'
-  );
-
-  // Función para obtener reserva en un slot específico
-  const getReservationCell = (dateStr: string, slotName: string): Reservation | undefined => {
+  const getReservationForSlot = (dateStr: string, slotName: string): Reservation | undefined => {
     return weekReservations.find((r) => r.reservation_date === dateStr && r.slot?.name === slotName);
   };
 
@@ -179,88 +185,68 @@ export default function ReservationsCalendar({ reservations }: Props) {
         </div>
       </div>
 
-      {/* Calendar Grid - Exactly like the photo */}
-      <div className="border border-rule rounded overflow-x-auto bg-paper">
-        <div className="inline-block min-w-full">
-          <div className="grid gap-0" style={{ gridTemplateColumns: '120px repeat(6, 1fr)' }}>
-            {/* Header Row */}
-            <div className="bg-paper-soft border-r border-b border-rule p-3 font-mono text-[11px] uppercase tracking-wide text-ink-mute font-semibold sticky left-0 z-20">
-              Franja
+      {/* Calendar Grid - Same style as blocks room calendar */}
+      <div className="border border-rule overflow-x-auto">
+        <div className="grid grid-cols-[120px_repeat(6,_1fr)] bg-paper-soft border-b border-rule">
+          <div className="px-3 py-3 font-mono text-[10px] uppercase tracking-wide text-ink-mute font-semibold">
+            Franja
+          </div>
+          {calendarDays.map((day) => (
+            <div key={day.date} className="px-3 py-3 border-l border-rule">
+              <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+                {day.dayName}
+              </div>
+              <div className="font-display text-sm text-ink mt-0.5 font-semibold">{day.date}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Slot rows */}
+        {SLOTS.map((slotName, slotIndex) => (
+          <div
+            key={slotIndex}
+            className="grid grid-cols-[120px_repeat(6,_1fr)] border-b border-rule last:border-b-0"
+          >
+            <div className="px-3 py-3 bg-paper/60 flex items-center font-mono text-[11px] uppercase tracking-wide text-ink-soft border-r border-rule">
+              {slotName}
             </div>
 
-            {weekDates.map((dateStr, idx) => {
-              const dateObj = new Date(dateStr);
-              const dayStr = DAYS[idx].toUpperCase();
-              const dateFormatted = dateStr; // YYYY-MM-DD format
+            {/* Cells for each day */}
+            {calendarDays.map((day) => {
+              const reservation = getReservationForSlot(day.date, slotName);
+              const today = new Date().toISOString().split('T')[0];
+              const isToday = day.date === today;
+
               return (
                 <div
-                  key={`header-${dateStr}`}
-                  className="bg-paper-soft border-r border-b border-rule p-3 text-center"
+                  key={`${day.date}-${slotName}`}
+                  className={`border-l border-rule p-3 min-h-[100px] flex flex-col justify-center ${
+                    isToday ? 'bg-accent/5' : 'bg-paper'
+                  }`}
                 >
-                  <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
-                    {dayStr}
-                  </div>
-                  <div className="font-display text-base text-ink font-semibold mt-1">
-                    {dateFormatted}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Slot Rows */}
-            {SLOTS.map((slotName) => (
-              <div key={`slot-${slotName}`}>
-                {/* Slot label */}
-                <div className="bg-paper-soft border-r border-b border-rule p-3 font-mono text-[10px] uppercase tracking-wide text-ink-mute font-semibold sticky left-0 z-10">
-                  {slotName}
-                </div>
-
-                {/* Cells for each day in this slot */}
-                {weekDates.map((dateStr) => {
-                  const reservation = getReservationCell(dateStr, slotName);
-                  const today = new Date().toISOString().split('T')[0];
-                  const isToday = dateStr === today;
-
-                  return (
-                    <div
-                      key={`cell-${dateStr}-${slotName}`}
-                      className={`border-r border-b border-rule p-4 min-h-[100px] flex flex-col justify-center ${
-                        isToday ? 'bg-accent/10' : 'bg-paper'
-                      } ${!reservation ? 'hover:bg-paper-soft/50' : ''} transition-colors`}
-                    >
-                      {reservation ? (
-                        <div className="space-y-1.5">
-                          <div>
-                            <div className="font-display text-sm font-bold text-ink leading-tight">
-                              {reservation.subject}
-                            </div>
-                          </div>
-                          <div className="text-[10px] space-y-0.5">
-                            <div className="font-mono text-ink-mute">
-                              {reservation.slot?.name ?? slotName}
-                            </div>
-                            <div className="font-mono text-ink-mute">
-                              {reservation.room?.code ?? '—'}
-                            </div>
-                            {reservation.professor_name && (
-                              <div className="font-mono text-accent text-[9px]">
-                                {reservation.professor_name}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="font-mono text-[10px] text-ink-mute/40">
-                          {slotName}
+                  {reservation ? (
+                    <div className="space-y-1">
+                      <div className="font-display text-sm font-bold text-ink leading-tight">
+                        {reservation.subject}
+                      </div>
+                      <div className="font-mono text-[10px] text-ink-mute">
+                        {reservation.room?.code ?? '—'}
+                      </div>
+                      <div className="font-mono text-[10px] text-ink-soft">
+                        Grupo: {reservation.group_name}
+                      </div>
+                      {reservation.professor_name && (
+                        <div className="font-mono text-[9px] text-accent mt-1">
+                          {reservation.professor_name}
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            ))}
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
