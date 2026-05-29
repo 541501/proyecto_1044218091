@@ -15,45 +15,25 @@ async function runMigration() {
     await client.connect();
     console.log('✅ Conectado!');
 
-    console.log('🔄 Ejecutando migración de reservaciones...');
+    console.log('🔄 Ejecutando migración de horarios...');
     
     const migrationSQL = `
--- Migration 0007: Add reservation request workflow
--- Fase: Requests — Permite profesores solicitar reservas que deben ser aprobadas por admin
+-- Actualizar los slots existentes con los nuevos horarios
+UPDATE slots SET name = '06:00–08:00', start_time = '06:00'::time, end_time = '08:00'::time WHERE order_index = 1;
+UPDATE slots SET name = '08:00–10:00', start_time = '08:00'::time, end_time = '10:00'::time WHERE order_index = 2;
+UPDATE slots SET name = '10:00–12:00', start_time = '10:00'::time, end_time = '12:00'::time WHERE order_index = 3;
+UPDATE slots SET name = '12:00–14:00', start_time = '12:00'::time, end_time = '14:00'::time WHERE order_index = 4;
+UPDATE slots SET name = '14:00–16:00', start_time = '14:00'::time, end_time = '16:00'::time WHERE order_index = 5;
+UPDATE slots SET name = '16:00–18:00', start_time = '16:00'::time, end_time = '18:00'::time WHERE order_index = 6;
 
--- Add new status 'pendiente' and approval tracking columns to reservations table
-ALTER TABLE reservations
-  DROP CONSTRAINT reservations_status_check,
-  ADD CONSTRAINT reservations_status_check
-    CHECK (status IN ('pendiente', 'confirmada', 'rechazada', 'cancelada')),
-  ADD COLUMN IF NOT EXISTS reason TEXT,
-  ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES users(id),
-  ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
-
--- Update unique index to only apply to 'confirmada' and 'rechazada' statuses
-DROP INDEX IF EXISTS idx_unique_active_reservation;
-CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_reservation
-  ON reservations(room_id, slot_id, reservation_date)
-  WHERE status IN ('confirmada', 'rechazada');
-
--- Index to quickly find pending requests
-CREATE INDEX IF NOT EXISTS idx_reservations_pending
-  ON reservations(status, created_at DESC)
-  WHERE status = 'pendiente';
-
--- Index to find requests by approver
-CREATE INDEX IF NOT EXISTS idx_reservations_approved_by
-  ON reservations(approved_by)
-  WHERE approved_by IS NOT NULL;
+-- Eliminar cualquier slot adicional que no sea necesario
+DELETE FROM slots WHERE order_index > 6;
     `;
 
     await client.query(migrationSQL);
 
-    console.log('✅ Migración ejecutada exitosamente!');
-    console.log('   - Tabla reservations actualizada');
-    console.log('   - Nuevos estados: pendiente, rechazada');
-    console.log('   - Nuevas columnas: reason, approved_by, approved_at');
-    console.log('   - Índices creados para optimizar búsquedas');
+    console.log('✅ Migración de horarios ejecutada exitosamente!');
+    console.log('   - Nuevos horarios: 06:00-08:00 hasta 16:00-18:00');
     
     await client.end();
     
