@@ -52,6 +52,8 @@ function NewReservationContent() {
     subject: string;
   } | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceDurationMonths, setRecurrenceDurationMonths] = useState(1);
 
   const roomId = searchParams.get('roomId');
   const slotId = searchParams.get('slotId');
@@ -118,6 +120,12 @@ function NewReservationContent() {
     }
     if (selectedProfessor?.id) {
       payload.professor_id = selectedProfessor.id;
+    }
+
+    // Incluir información de recurrencia
+    if (isRecurring) {
+      payload.is_recurring = true;
+      payload.recurrence_duration_months = recurrenceDurationMonths;
     }
 
     console.log('[new-reservation] Submitting payload:', payload);
@@ -294,6 +302,51 @@ function NewReservationContent() {
                 onChange={setSelectedProfessor}
                 placeholder="Escribe @ y busca un docente"
               />
+            </div>
+
+            {/* Recurring reservations section */}
+            <div className="border-t border-rule pt-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="is_recurring"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="is_recurring" className="font-mono text-[11px] uppercase tracking-wide text-ink-soft cursor-pointer">
+                  ¿Reserva recurrente? (se repite cada semana)
+                </label>
+              </div>
+
+              {isRecurring && (
+                <div>
+                  <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                    Duración (meses)
+                  </label>
+                  <select
+                    value={recurrenceDurationMonths}
+                    onChange={(e) => setRecurrenceDurationMonths(Number(e.target.value))}
+                    className="field text-base w-full md:w-48"
+                  >
+                    <option value={1}>1 mes</option>
+                    <option value={2}>2 meses</option>
+                    <option value={3}>3 meses</option>
+                    <option value={4}>4 meses</option>
+                    <option value={5}>5 meses</option>
+                  </select>
+                  <p className="text-xs text-ink-soft mt-2">
+                    Se crearán automáticamente copias de esta reserva cada semana hasta {
+                      (() => {
+                        const start = new Date(selectedDate);
+                        const end = new Date(start);
+                        end.setMonth(end.getMonth() + recurrenceDurationMonths);
+                        return end.toLocaleDateString('es-CO', { month: 'long', day: 'numeric' });
+                      })()
+                    }.
+                  </p>
+                </div>
+              )}
             </div>
 
             {isDateInvalid ? (

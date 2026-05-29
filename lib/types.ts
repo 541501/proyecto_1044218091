@@ -100,6 +100,10 @@ export interface Reservation {
   approved_at: string | null; // When the request was approved
   created_by: string;
   created_at: string;
+  // Recurring reservations
+  is_recurring: boolean | null; // Whether this is a recurring reservation
+  recurrence_end_date: string | null; // When the recurrence ends (YYYY-MM-DD)
+  parent_reservation_id: string | null; // If this is an instance of a recurring reservation
   // Optional joined objects from API responses
   room?: { code: string; block_id: string };
   slot?: { name: string; start_time: string; end_time: string };
@@ -195,6 +199,8 @@ export interface CreateReservationRequest {
   professor_name?: string;
   professor_id?: string; // Si se taguea un profesor, usar su ID como professor_id
   reason?: string; // Reason for requesting the reservation
+  is_recurring?: boolean; // Whether to create recurring instances
+  recurrence_duration_months?: number; // How many months to repeat (1-5)
 }
 
 export interface CancelReservationRequest {

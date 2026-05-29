@@ -586,6 +586,122 @@ export async function createReservation(
   }
 }
 
+/**
+ * Create a recurring reservation with weekly instances
+ * Creates the parent reservation and then weekly instances until the end date
+ */
+export async function createRecurringReservation(
+  userId: string,
+  data: CreateReservationRequest,
+  userRole: 'profesor' | 'coordinador' | 'admin' = 'profesor',
+): Promise<{ parent: Reservation; instances: Reservation[] }> {
+  console.log('[createRecurringReservation] Starting for user:', userId, 'role:', userRole, 'data:', data);
+
+  // First, create the parent reservation (will mark as is_recurring=true)
+  const parentReservation = await createReservation(userId, data, userRole);
+  console.log('[createRecurringReservation] Parent reservation created:', parentReservation.id);
+
+  if (!data.is_recurring || !data.recurrence_duration_months) {
+    return { parent: parentReservation, instances: [] };
+  }
+
+  // Calculate end date: start date + duration in months
+  const [startYear, startMonth, startDay] = data.reservation_date.split('-').map(Number);
+  const startDate = new Date(startYear, startMonth - 1, startDay);
+  const endDate = new Date(startYear, startMonth - 1 + data.recurrence_duration_months, startDay);
+
+  console.log('[createRecurringReservation] Creating instances from', startDate.toISOString(), 'to', endDate.toISOString());
+
+  const supabase = getSupabaseAdmin();
+  const instances: Reservation[] = [];
+  const currentDate = new Date(startDate);
+
+  // Move to next week for first instance
+  currentDate.setDate(currentDate.getDate() + 7);
+
+  // Create a new reservation for each week until end date
+  while (currentDate < endDate) {
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    const nextReservationDate = `${year}-${month}-${day}`;
+
+    console.log('[createRecurringReservation] Creating instance for', nextReservationDate);
+
+    try {
+      // Check for conflicts on this specific date
+      const { validateReservationRules, checkConflict } = await import('./reservationService');
+      
+      const validationErrors = validateReservationRules(nextReservationDate);
+      if (validationErrors.length > 0) {
+        console.warn('[createRecurringReservation] Skipping invalid date:', nextReservationDate);
+        currentDate.setDate(currentDate.getDate() + 7);
+        continue;
+      }
+
+      const conflict = await checkConflict(data.room_id, data.slot_id, nextReservationDate);
+      if (conflict) {
+        console.warn('[createRecurringReservation] Conflict on', nextReservationDate, '- skipping');
+        currentDate.setDate(currentDate.getDate() + 7);
+        continue;
+      }
+
+      const professorId = data.professor_id || userId;
+      const status = userRole === 'profesor' ? 'pendiente' : 'confirmada';
+
+      const { data: instance, error } = await supabase
+        .from('reservations')
+        .insert([
+          {
+            room_id: data.room_id,
+            slot_id: data.slot_id,
+            professor_id: professorId,
+            reservation_date: nextReservationDate,
+            subject: data.subject,
+            group_name: data.group_name,
+            reason: data.reason || null,
+            status: status,
+            created_by: userId,
+            created_at: new Date().toISOString(),
+            parent_reservation_id: parentReservation.id, // Link to parent
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.warn('[createRecurringReservation] Error creating instance:', error);
+      } else if (instance) {
+        instances.push(instance);
+      }
+    } catch (err) {
+      console.warn('[createRecurringReservation] Exception creating instance:', err);
+    }
+
+    // Move to next week
+    currentDate.setDate(currentDate.getDate() + 7);
+  }
+
+  console.log('[createRecurringReservation] Created', instances.length, 'instances');
+
+  // Update parent to mark as recurring
+  try {
+    const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+    await supabase
+      .from('reservations')
+      .update({
+        is_recurring: true,
+        recurrence_end_date: endDateStr,
+      })
+      .eq('id', parentReservation.id);
+    console.log('[createRecurringReservation] Marked parent as recurring');
+  } catch (err) {
+    console.warn('[createRecurringReservation] Error marking parent:', err);
+  }
+
+  return { parent: parentReservation, instances };
+}
+
 export async function cancelReservation(
   id: string,
   userId: string,

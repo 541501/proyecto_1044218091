@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticatedRoute } from '@/lib/withAuth';
 import { withRole } from '@/lib/withRole';
-import { getReservations, createReservation } from '@/lib/dataService';
+import { getReservations, createReservation, createRecurringReservation } from '@/lib/dataService';
 import { JWTPayload, CreateReservationRequest } from '@/lib/types';
 import z from 'zod';
 
@@ -20,7 +20,9 @@ const BaseCreateReservationSchema = z.object({
   group_name: z.string().min(1, 'Grupo requerido').max(50),
   professor_name: z.string().max(100).optional(),
   professor_id: z.string().uuid('ID de profesor inválido').optional(),
-  reason: z.string().max(500).optional()
+  reason: z.string().max(500).optional(),
+  is_recurring: z.boolean().optional(),
+  recurrence_duration_months: z.number().min(1).max(5).optional()
 });
 
 // Schema para profesores (requiere razón) - completamente separado
@@ -32,7 +34,9 @@ const ProfessorReservationSchema = z.object({
   group_name: z.string().min(1, 'Grupo requerido').max(50),
   professor_name: z.string().max(100).optional(),
   professor_id: z.string().uuid('ID de profesor inválido').optional(),
-  reason: z.string().min(1, 'Razón de la solicitud requerida').max(500)
+  reason: z.string().min(1, 'Razón de la solicitud requerida').max(500),
+  is_recurring: z.boolean().optional(),
+  recurrence_duration_months: z.number().min(1).max(5).optional()
 });
 
 // Función para obtener el schema correcto según el rol
@@ -97,13 +101,22 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
         : {}),
       ...(validated.reason && validated.reason.trim()
         ? { reason: validated.reason.trim() }
+        : {}),
+      ...(validated.is_recurring
+        ? { is_recurring: true, recurrence_duration_months: validated.recurrence_duration_months || 1 }
         : {})
     };
 
-    const reservation = await createReservation(user.userId, reservationData, user.role);
-    debugLogs.push(`[4] Created reservation: ${reservation.id} with status: ${reservation.status}`);
-
-    return NextResponse.json(reservation, { status: 201 });
+    // Use recurring reservation function if requested
+    if (validated.is_recurring && validated.recurrence_duration_months) {
+      const result = await createRecurringReservation(user.userId, reservationData, user.role);
+      debugLogs.push(`[4] Created recurring reservation: ${result.parent.id} with ${result.instances.length} instances`);
+      return NextResponse.json(result.parent, { status: 201 });
+    } else {
+      const reservation = await createReservation(user.userId, reservationData, user.role);
+      debugLogs.push(`[4] Created reservation: ${reservation.id} with status: ${reservation.status}`);
+      return NextResponse.json(reservation, { status: 201 });
+    }
   } catch (error: unknown) {
     debugLogs.push(`[ERROR] ${error instanceof Error ? error.message : String(error)}`);
     debugLogs.push(`[ERROR_STACK] ${error instanceof Error ? error.stack : 'No stack'}`);
