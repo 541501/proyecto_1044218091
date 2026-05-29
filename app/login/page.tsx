@@ -83,9 +83,18 @@ export default function LoginPage() {
 
       <div className="relative z-10 min-h-screen grid lg:grid-cols-[1.1fr_1fr]">
         {/* Editorial left rail */}
-        <div className="px-10 lg:px-16 py-12 lg:py-20 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-ink-mute">
+        <div className="px-10 lg:px-16 py-12 lg:py-20 flex flex-col justify-between relative">
+          {/* Background image - non-interactive */}
+          <div className="absolute inset-0 pointer-events-none opacity-10">
+            <img 
+              src="/classsport-login.png" 
+              alt="ClassSport Background" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          {/* Content */}
+          <div className="relative z-10">
+            <div>
               <IconDot size={6} className="text-accent" />
               <span>Institución Universitaria · Edición 2026</span>
             </div>
@@ -119,8 +128,9 @@ export default function LoginPage() {
               </li>
             </ul>
           </div>
+          </div>
 
-          <div className="mt-12 text-[11px] font-mono uppercase tracking-wide text-ink-mute">
+          <div className="relative z-10 mt-12 text-[11px] font-mono uppercase tracking-wide text-ink-mute">
             <p>SIST0200 · Lógica y Programación</p>
             <p className="mt-1">Juan Gutiérrez · Doc 1044218091</p>
             <p className="mt-3">Agradecimiento a Jhonatan Castro</p>
