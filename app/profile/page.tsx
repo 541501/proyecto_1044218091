@@ -264,10 +264,18 @@ function ProfileContent() {
             <IconUser size={14} />
             Identidad
           </div>
-          <div className="grid sm:grid-cols-3 gap-px bg-rule border border-rule">
-            <Field label="Nombre" value={user.name || '—'} />
-            <Field label="Correo" value={user.email} mono />
-            <Field label="Rol" value={user.role} capitalize />
+          <div className="border border-rule bg-rule">
+            <div className="grid sm:grid-cols-3 gap-px bg-rule">
+              <Field label="Nombre" value={user.name || '—'} />
+              <Field label="Correo" value={user.email} mono />
+              <Field label="Rol" value={user.role} capitalize />
+            </div>
+            <div className="bg-surface px-5 py-4 border-t border-rule">
+              <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">Agradecimiento</div>
+              <div className="mt-1 text-ink font-display text-xl">
+                Agradecimiento a Jhonatan Castro
+              </div>
+            </div>
           </div>
         </section>
 
