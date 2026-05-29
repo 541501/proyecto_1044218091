@@ -9,24 +9,7 @@ import {
   IconCalendar,
 } from '@/components/icons';
 import { Badge } from '@/components/ui/Badge';
-
-interface Reservation {
-  id: string;
-  room_id: string;
-  slot_id: string;
-  professor_id: string;
-  reservation_date: string;
-  subject: string;
-  group_name: string;
-  professor_name?: string;
-  status: 'confirmada' | 'cancelada';
-  created_at: string;
-  cancellation_reason?: string | null;
-  room?: { code: string; block_id: string };
-  slot?: { name: string; start_time: string; end_time: string };
-  block?: { code: string; name: string };
-  professor?: { name: string; email: string };
-}
+import { Reservation } from '@/lib/types';
 
 interface Props {
   reservations: Reservation[];
