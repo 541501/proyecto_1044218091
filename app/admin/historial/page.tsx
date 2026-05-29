@@ -38,7 +38,7 @@ function HistorialContent() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [searchText, setSearchText] = useState('');
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [deletingMultiple, setDeletingMultiple] = useState(false);
 
   // Cargar usuario actual y reservas
@@ -110,18 +110,28 @@ function HistorialContent() {
     }
   };
 
+  const toggleReservation = (reservationId: string) => {
+    console.log('Toggling:', reservationId, 'current state:', selected);
+    setSelected((prev) => ({
+      ...prev,
+      [reservationId]: !prev[reservationId],
+    }));
+  };
+
   const handleDeleteMultiple = async () => {
-    if (selected.length === 0) {
+    const selectedIds = Object.keys(selected).filter(id => selected[id]);
+    
+    if (selectedIds.length === 0) {
       return;
     }
 
-    if (!window.confirm(`¿Estás seguro de que quieres eliminar ${selected.length} reserva${selected.length !== 1 ? 's' : ''} del historial?`)) {
+    if (!window.confirm(`¿Estás seguro de que quieres eliminar ${selectedIds.length} reserva${selectedIds.length !== 1 ? 's' : ''} del historial?`)) {
       return;
     }
 
     try {
       setDeletingMultiple(true);
-      const deletePromises = selected.map((id) =>
+      const deletePromises = selectedIds.map((id) =>
         fetch(`/api/admin/reservations/${id}/delete`, {
           method: 'POST',
           credentials: 'include',
@@ -134,8 +144,8 @@ function HistorialContent() {
       const allSuccess = results.every((res) => res.ok);
 
       if (allSuccess) {
-        setReservations((prev) => prev.filter((r) => !selected.includes(r.id)));
-        setSelected([]);
+        setReservations((prev) => prev.filter((r) => !selectedIds.includes(r.id)));
+        setSelected({});
       } else {
         alert('Error al eliminar algunas reservas');
       }
@@ -226,10 +236,10 @@ function HistorialContent() {
           />
         ) : (
           <div className="space-y-3 overflow-x-auto">
-            {selected.length > 0 && (
+            {Object.values(selected).some(v => v) && (
               <div className="flex items-center gap-3 p-4 bg-warn/10 border border-warn/30 rounded">
                 <span className="font-mono text-[11px] uppercase tracking-wide text-warn">
-                  {selected.length} reserva{selected.length !== 1 ? 's' : ''} seleccionada{selected.length !== 1 ? 's' : ''}
+                  {Object.values(selected).filter(v => v).length} reserva{Object.values(selected).filter(v => v).length !== 1 ? 's' : ''} seleccionada{Object.values(selected).filter(v => v).length !== 1 ? 's' : ''}
                 </span>
                 <button
                   onClick={handleDeleteMultiple}
@@ -252,16 +262,27 @@ function HistorialContent() {
                     <th className="text-center px-4 py-3 font-mono text-[10px] uppercase tracking-wide text-ink-soft w-12">
                       <input
                         type="checkbox"
-                        checked={filtered.length > 0 && selected.length === filtered.length}
+                        checked={filtered.length > 0 && filtered.every((r) => selected[r.id])}
                         onChange={() => {
-                          if (selected.length === filtered.length && filtered.length > 0) {
-                            setSelected([]);
+                          console.log('Toggle all:', { filtered: filtered.length });
+                          if (filtered.every((r) => selected[r.id])) {
+                            console.log('Deselecting all');
+                            const newSelected = { ...selected };
+                            filtered.forEach(r => {
+                              newSelected[r.id] = false;
+                            });
+                            setSelected(newSelected);
                           } else {
-                            setSelected(filtered.map((r) => r.id));
+                            console.log('Selecting all');
+                            const newSelected = { ...selected };
+                            filtered.forEach(r => {
+                              newSelected[r.id] = true;
+                            });
+                            setSelected(newSelected);
                           }
                         }}
                         className="w-4 h-4 cursor-pointer"
-                        title={filtered.length > 0 && selected.length === filtered.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
+                        title={filtered.length > 0 && filtered.every((r) => selected[r.id]) ? 'Deseleccionar todo' : 'Seleccionar todo'}
                       />
                     </th>
                     <th className="text-left px-4 py-3 font-mono text-[10px] uppercase tracking-wide text-ink-soft">
@@ -290,14 +311,8 @@ function HistorialContent() {
                       <td className="text-center px-4 py-3">
                         <input
                           type="checkbox"
-                          checked={selected.includes(r.id)}
-                          onChange={() => {
-                            if (selected.includes(r.id)) {
-                              setSelected(selected.filter((id) => id !== r.id));
-                            } else {
-                              setSelected([...selected, r.id]);
-                            }
-                          }}
+                          checked={!!selected[r.id]}
+                          onChange={() => toggleReservation(r.id)}
                           className="w-4 h-4 cursor-pointer"
                           title="Seleccionar esta reserva"
                         />
