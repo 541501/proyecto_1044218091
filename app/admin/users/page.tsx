@@ -166,10 +166,11 @@ export default function AdminUsersPage() {
     setEditTarget(u);
     setEditName(u.name);
     setEditRole(uiRole.role as Role);
-    if (u.role === 'coordinador') {
-      setEditCoordinadorSpecialty('esc_psicologia');
-    } else if (uiRole.specialty) {
+    // If it's an escuela role, set the specialty; otherwise default to psicologia
+    if (uiRole.specialty) {
       setEditCoordinadorSpecialty(uiRole.specialty);
+    } else if (uiRole.role === 'coordinador') {
+      setEditCoordinadorSpecialty('esc_psicologia');
     }
     setEditActive(u.is_active);
     setEditError(null);
