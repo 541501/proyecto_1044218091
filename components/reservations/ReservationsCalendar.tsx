@@ -13,6 +13,7 @@ import { Reservation } from '@/lib/types';
 
 interface Props {
   reservations: Reservation[];
+  userId?: string; // ID del usuario actual (para resaltar solicitudes creadas por él)
 }
 
 function getMonday(date: Date): string {
@@ -48,7 +49,7 @@ function getWeekRange(startDateStr: string) {
   };
 }
 
-export default function ReservationsCalendar({ reservations }: Props) {
+export default function ReservationsCalendar({ reservations, userId }: Props) {
   const [weekStart, setWeekStart] = useState<string>('');
   const [isClient, setIsClient] = useState(false);
 
@@ -204,13 +205,24 @@ export default function ReservationsCalendar({ reservations }: Props) {
                 <div
                   key={`${day.date}-${slotName}`}
                   className={`border-l border-rule p-3 min-h-[100px] flex flex-col justify-center ${
-                    isToday ? 'bg-accent/5' : 'bg-paper'
+                    reservation && userId && reservation.created_by === userId
+                      ? 'bg-warn/10 border-l-2 border-l-warn'  // Resaltar solicitudes aprobadas creadas por el usuario
+                      : isToday
+                      ? 'bg-accent/5'
+                      : 'bg-paper'
                   }`}
                 >
                   {reservation ? (
                     <div className="space-y-1">
-                      <div className="font-display text-sm font-bold text-ink leading-tight">
-                        {reservation.subject}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="font-display text-sm font-bold text-ink leading-tight flex-1">
+                          {reservation.subject}
+                        </div>
+                        {userId && reservation.created_by === userId && (
+                          <div className="font-mono text-[8px] bg-warn text-paper px-1.5 py-0.5 rounded whitespace-nowrap">
+                            BORRAR
+                          </div>
+                        )}
                       </div>
                       <div className="font-mono text-[10px] text-ink-mute">
                         {reservation.room?.code ?? '—'}

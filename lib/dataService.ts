@@ -919,10 +919,16 @@ export async function deleteReservationRequest(
       throw err;
     }
     
-    // Verify it's pending status
-    if (request.status !== 'pendiente') {
-      console.log('[deleteReservationRequest] Request is not pending:', requestId, 'status:', request.status);
-      const err = new Error('Solo se pueden borrar solicitudes pendientes') as any;
+    // Verify it's pending status OR confirmada (if created by this professor)
+    if (request.status === 'pendiente') {
+      // Can always delete pending requests
+      console.log('[deleteReservationRequest] Deleting pending request');
+    } else if (request.status === 'confirmada' && request.created_by === professorId) {
+      // Can delete confirmada if professor created it (approved request)
+      console.log('[deleteReservationRequest] Deleting approved request created by professor');
+    } else {
+      console.log('[deleteReservationRequest] Request cannot be deleted:', requestId, 'status:', request.status);
+      const err = new Error('Solo se pueden borrar solicitudes pendientes o solicitudes aprobadas que hayas creado') as any;
       err.code = 'INVALID_STATUS';
       throw err;
     }

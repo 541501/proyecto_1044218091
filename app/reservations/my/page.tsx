@@ -82,6 +82,11 @@ function MyReservationsContent() {
     return d > today;
   };
 
+  // Verifica si la reserva fue solicitada por este usuario y fue aprobada
+  const isRequestedByUser = (r: Reservation): boolean => {
+    return r.status === 'confirmada' && r.created_by === user?.id;
+  };
+
   const handleConfirmCancel = async () => {
     if (!selected) return;
 
@@ -257,7 +262,7 @@ function MyReservationsContent() {
             action={{ label: 'Ir a bloques', onClick: () => router.push('/blocks') }}
           />
         ) : viewMode === 'calendar' ? (
-          <ReservationsCalendar reservations={filtered} />
+          <ReservationsCalendar reservations={filtered} userId={user?.id} />
         ) : (
           <ul className="divide-y divide-rule border-y border-rule">
             {filtered.map((r) => (
@@ -274,9 +279,17 @@ function MyReservationsContent() {
                       <span className="font-mono text-[11px] uppercase tracking-wide text-ink-mute">
                         {r.room?.code ?? '—'}
                       </span>
-                      <Badge variant={r.status === 'confirmada' ? 'success' : 'default'}>
-                        {r.status === 'confirmada' ? 'Confirmada' : 'Cancelada'}
-                      </Badge>
+                      {isRequestedByUser(r) ? (
+                        <Badge variant="info">Solicitud Aprobada</Badge>
+                      ) : r.status === 'confirmada' ? (
+                        <Badge variant="success">Confirmada</Badge>
+                      ) : r.status === 'pendiente' ? (
+                        <Badge variant="default">Pendiente</Badge>
+                      ) : r.status === 'rechazada' ? (
+                        <Badge variant="warn">Rechazada</Badge>
+                      ) : (
+                        <Badge variant="default">Cancelada</Badge>
+                      )}
                     </div>
                     <h3 className="font-display text-2xl text-ink leading-tight mt-1.5">
                       {r.subject}
@@ -310,7 +323,19 @@ function MyReservationsContent() {
                     ) : null}
                   </div>
 
-                  {r.status === 'pendiente' ? (
+                  {isRequestedByUser(r) ? (
+                    <button
+                      onClick={() => {
+                        setSelected(r);
+                        setShowDeleteModal(true);
+                      }}
+                      className="text-ink-mute hover:text-bad transition-colors p-2"
+                      aria-label="Borrar reserva"
+                      title="Borrar esta reserva después de la clase"
+                    >
+                      <IconTrash size={18} />
+                    </button>
+                  ) : r.status === 'pendiente' ? (
                     <button
                       onClick={() => {
                         setSelected(r);
@@ -346,11 +371,11 @@ function MyReservationsContent() {
         <Modal
           isOpen={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
-          title="Eliminar solicitud"
+          title={selected && isRequestedByUser(selected) ? 'Borrar reserva' : 'Eliminar solicitud'}
           eyebrow="Acción irreversible"
           actions={[
             {
-              label: deleting ? 'Eliminando…' : 'Eliminar solicitud',
+              label: deleting ? 'Eliminando…' : 'Eliminar',
               variant: 'danger',
               onClick: handleConfirmDelete,
               disabled: deleting,
@@ -365,7 +390,9 @@ function MyReservationsContent() {
         >
           <div className="space-y-3">
             <p className="text-ink-soft">
-              ¿Estás seguro de que deseas eliminar esta solicitud? Esta acción no se puede deshacer.
+              {selected && isRequestedByUser(selected)
+                ? '¿Estás seguro de que deseas borrar esta reserva? Esta acción no se puede deshacer. Recuerda borrarla después de completar la clase.'
+                : '¿Estás seguro de que deseas eliminar esta solicitud? Esta acción no se puede deshacer.'}
             </p>
             {selected?.reason && (
               <div className="p-3 bg-accent-soft border border-accent rounded">
