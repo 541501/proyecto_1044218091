@@ -120,12 +120,22 @@ function HistorialContent() {
     setSelected(newSelected);
   };
 
+  const handleSelectReservationClick = (e: React.ChangeEvent<HTMLInputElement>, reservationId: string) => {
+    e.stopPropagation?.();
+    handleSelectReservation(reservationId);
+  };
+
   const handleSelectAll = () => {
-    if (selected.size === filtered.length) {
+    if (selected.size === filtered.length && filtered.length > 0) {
       setSelected(new Set());
     } else {
       setSelected(new Set(filtered.map((r) => r.id)));
     }
+  };
+
+  const handleSelectAllClick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation?.();
+    handleSelectAll();
   };
 
   const handleDeleteMultiple = async () => {
@@ -270,10 +280,10 @@ function HistorialContent() {
                     <th className="text-center px-4 py-3 font-mono text-[10px] uppercase tracking-wide text-ink-soft w-12">
                       <input
                         type="checkbox"
-                        checked={selected.size > 0 && selected.size === filtered.length}
-                        onChange={handleSelectAll}
+                        checked={filtered.length > 0 && selected.size === filtered.length}
+                        onChange={handleSelectAllClick}
                         className="w-4 h-4 cursor-pointer"
-                        title={selected.size === filtered.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
+                        title={filtered.length > 0 && selected.size === filtered.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
                       />
                     </th>
                     <th className="text-left px-4 py-3 font-mono text-[10px] uppercase tracking-wide text-ink-soft">
@@ -303,7 +313,7 @@ function HistorialContent() {
                         <input
                           type="checkbox"
                           checked={selected.has(r.id)}
-                          onChange={() => handleSelectReservation(r.id)}
+                          onChange={(e) => handleSelectReservationClick(e, r.id)}
                           className="w-4 h-4 cursor-pointer"
                           title="Seleccionar esta reserva"
                         />
