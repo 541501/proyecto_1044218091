@@ -86,6 +86,8 @@ function HistorialContent() {
     return matches;
   });
 
+  console.log('📊 Filtered reservations:', { count: filtered.length, ids: filtered.map(r => r.id) });
+
   const handleDelete = async (reservationId: string) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar esta reserva del historial?')) {
       return;
@@ -111,11 +113,15 @@ function HistorialContent() {
   };
 
   const toggleReservation = (reservationId: string) => {
-    console.log('Toggling:', reservationId, 'current state:', selected);
-    setSelected((prev) => ({
-      ...prev,
-      [reservationId]: !prev[reservationId],
-    }));
+    console.log('🔹 Toggle individual:', { reservationId, current: selected[reservationId], allSelected: selected });
+    setSelected((prev) => {
+      const newState = {
+        ...prev,
+        [reservationId]: !prev[reservationId],
+      };
+      console.log('🔹 New state after toggle:', newState);
+      return newState;
+    });
   };
 
   const handleDeleteMultiple = async () => {
@@ -263,23 +269,27 @@ function HistorialContent() {
                       <input
                         type="checkbox"
                         checked={filtered.length > 0 && filtered.every((r) => selected[r.id])}
-                        onChange={() => {
-                          console.log('Toggle all:', { filtered: filtered.length });
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          console.log('🔸 Select all toggled');
                           if (filtered.every((r) => selected[r.id])) {
-                            console.log('Deselecting all');
+                            console.log('🔸 Deselecting all');
                             const newSelected = { ...selected };
                             filtered.forEach(r => {
                               newSelected[r.id] = false;
                             });
                             setSelected(newSelected);
                           } else {
-                            console.log('Selecting all');
+                            console.log('🔸 Selecting all');
                             const newSelected = { ...selected };
                             filtered.forEach(r => {
                               newSelected[r.id] = true;
                             });
                             setSelected(newSelected);
                           }
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
                         }}
                         className="w-4 h-4 cursor-pointer"
                         title={filtered.length > 0 && filtered.every((r) => selected[r.id]) ? 'Deseleccionar todo' : 'Seleccionar todo'}
@@ -306,17 +316,28 @@ function HistorialContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((r) => (
-                    <tr key={r.id} className="border-b border-rule hover:bg-paper-soft transition-colors">
-                      <td className="text-center px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={!!selected[r.id]}
-                          onChange={() => toggleReservation(r.id)}
-                          className="w-4 h-4 cursor-pointer"
-                          title="Seleccionar esta reserva"
-                        />
-                      </td>
+                  {filtered.map((r) => {
+                    if (!r.id) {
+                      console.error('Reservation without ID found:', r);
+                      return null;
+                    }
+                    return (
+                      <tr key={r.id} className="border-b border-rule hover:bg-paper-soft transition-colors">
+                        <td className="text-center px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={!!selected[r.id]}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleReservation(r.id);
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                            className="w-4 h-4 cursor-pointer"
+                            title="Seleccionar esta reserva"
+                          />
+                        </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-ink">{((r as any).professorName || r.professor_name || 'Desconocido')}</div>
                       </td>
@@ -364,7 +385,8 @@ function HistorialContent() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
