@@ -12,7 +12,7 @@ import { getReservations, createReservation } from '@/lib/dataService';
 import { JWTPayload, CreateReservationRequest } from '@/lib/types';
 import z from 'zod';
 
-const CreateReservationSchema = z.object({
+const BaseCreateReservationSchema = z.object({
   room_id: z.string().uuid('ID de sala inválido'),
   slot_id: z.string().uuid('ID de franja inválido'),
   reservation_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha debe ser formato YYYY-MM-DD'),
@@ -20,8 +20,18 @@ const CreateReservationSchema = z.object({
   group_name: z.string().min(1, 'Grupo requerido').max(50),
   professor_name: z.string().max(100).optional(),
   professor_id: z.string().uuid('ID de profesor inválido').optional(),
-  reason: z.string().min(1, 'Razón de la solicitud requerida').max(500).optional()
+  reason: z.string().max(500).optional()
 });
+
+// Schema para profesores (requiere razón)
+const ProfessorReservationSchema = BaseCreateReservationSchema.extend({
+  reason: z.string().min(1, 'Razón de la solicitud requerida').max(500)
+});
+
+// Función para obtener el schema correcto según el rol
+const getCreateReservationSchema = (role: string) => {
+  return role === 'profesor' ? ProfessorReservationSchema : BaseCreateReservationSchema;
+};
 
 export async function GET(request: NextRequest) {
   return withRole(['coordinador', 'admin'])(async (req: NextRequest, user: JWTPayload) => {
@@ -52,11 +62,13 @@ export const POST = authenticatedRoute(async (req: NextRequest, user: JWTPayload
   const debugLogs: string[] = [];
   
   try {
-    debugLogs.push(`[1] Request from user: ${user.userId}`);
+    debugLogs.push(`[1] Request from user: ${user.userId}, role: ${user.role}`);
     
     const body = await req.json();
     debugLogs.push(`[2] Body received: ${JSON.stringify(body)}`);
     
+    // Obtener el schema correcto según el rol
+    const CreateReservationSchema = getCreateReservationSchema(user.role || 'profesor');
     const validated = CreateReservationSchema.parse(body);
     debugLogs.push(`[3] Validation passed`);
 

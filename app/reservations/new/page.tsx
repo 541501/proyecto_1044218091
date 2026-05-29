@@ -91,7 +91,9 @@ function NewReservationContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!roomId || !slotId || !selectedDate) return setError('Faltan datos de la reserva');
-    if (!subject.trim() || !groupName.trim() || !reason.trim()) return setError('Completa todos los campos');
+    if (!subject.trim() || !groupName.trim()) return setError('Completa todos los campos');
+    // La razón es requerida solo para profesores
+    if (user?.role === 'profesor' && !reason.trim()) return setError('Completa todos los campos');
 
     setLoading(true);
     setError('');
@@ -260,26 +262,28 @@ function NewReservationContent() {
               </div>
             </div>
 
-            <div>
-              <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
-                03 · Razón de la solicitud
-              </label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Describe por qué necesitas esta reserva (actividades, evaluaciones, etc.)"
-                maxLength={500}
-                className="field text-base resize-none"
-                rows={3}
-              />
-              <div className="font-mono text-[10px] text-ink-mute mt-1.5 text-right">
-                {reason.length}/500
+            {user?.role === 'profesor' ? (
+              <div>
+                <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
+                  03 · Razón de la solicitud
+                </label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Describe por qué necesitas esta reserva (actividades, evaluaciones, etc.)"
+                  maxLength={500}
+                  className="field text-base resize-none"
+                  rows={3}
+                />
+                <div className="font-mono text-[10px] text-ink-mute mt-1.5 text-right">
+                  {reason.length}/500
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <div>
               <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
-                04 · Docente (Opcional)
+                {user?.role === 'profesor' ? '04' : '03'} · Docente (Opcional)
               </label>
               <ProfessorTagInput
                 value={selectedProfessor}
