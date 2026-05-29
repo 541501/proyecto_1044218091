@@ -31,7 +31,7 @@ interface UserRow {
 
 const ROLE_LABEL: Record<Role, string> = {
   profesor: 'Profesor',
-  coordinador: 'Coordinador',
+  coordinador: 'Escuela',
   escuela_psicologia: 'Escuela Psicología',
   escuela_derecho: 'Escuela Derecho',
   escuela_ciencias: 'Escuela Ciencias Exactas e Ing',
@@ -118,6 +118,10 @@ export default function AdminUsersPage() {
       setCreateError('Nombre y email son requeridos.');
       return;
     }
+    if (newRole.startsWith('escuela_') && !newCoordinadorSpecialty) {
+      setCreateError('Debe seleccionar una especialidad.');
+      return;
+    }
     setSubmitting(true);
     try {
       const roleToSave = getRealRole(newRole, newCoordinadorSpecialty);
@@ -162,7 +166,9 @@ export default function AdminUsersPage() {
     setEditTarget(u);
     setEditName(u.name);
     setEditRole(uiRole.role as Role);
-    if (uiRole.specialty) {
+    if (u.role === 'coordinador') {
+      setEditCoordinadorSpecialty('escuela_psicologia');
+    } else if (uiRole.specialty) {
       setEditCoordinadorSpecialty(uiRole.specialty);
     }
     setEditActive(u.is_active);
@@ -173,6 +179,10 @@ export default function AdminUsersPage() {
   const handleEdit = async () => {
     if (!editTarget) return;
     setEditError(null);
+    if (editRole === 'coordinador' && !editCoordinadorSpecialty) {
+      setEditError('Debe seleccionar una especialidad.');
+      return;
+    }
     setSubmitting(true);
     try {
       const roleToSave = getRealRole(editRole, editCoordinadorSpecialty);
@@ -477,7 +487,7 @@ export default function AdminUsersPage() {
                           ].join(' ')}
                         >
                           <span className="font-mono text-[11px] uppercase tracking-wide">
-                            {r === 'coordinador' ? 'Coordinador' : ROLE_LABEL[r]}
+                            {r === 'coordinador' ? 'Escuela' : ROLE_LABEL[r]}
                           </span>
                         </button>
                       );
@@ -580,7 +590,7 @@ export default function AdminUsersPage() {
                         ].join(' ')}
                       >
                         <span className="font-mono text-[11px] uppercase tracking-wide">
-                          {r === 'coordinador' ? 'Coordinador' : ROLE_LABEL[r]}
+                          {r === 'coordinador' ? 'Escuela' : ROLE_LABEL[r]}
                         </span>
                       </button>
                     );
