@@ -113,46 +113,27 @@ export default function ReservationsCalendar({ reservations }: Props) {
   if (!isClient) return null;
 
   const { startStr, endStr } = getWeekRange(weekStart);
+  const SLOTS = ['07:00–09:00', '09:00–11:00', '11:00–13:00', '13:00–15:00', '15:00–17:00', '16:00–18:00', '18:00–20:00'];
+  const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-  // Filtrar reservas de la semana actual y ordenar por fecha y hora
-  const weekReservations = reservations
-    .filter((r) => r.reservation_date >= startStr && r.reservation_date <= endStr && r.status === 'confirmada')
-    .sort((a, b) => {
-      const dateCompare = new Date(a.reservation_date).getTime() - new Date(b.reservation_date).getTime();
-      if (dateCompare !== 0) return dateCompare;
-
-      const slotOrder: { [key: string]: number } = {
-        '07:00–09:00': 0,
-        '09:00–11:00': 1,
-        '11:00–13:00': 2,
-        '13:00–15:00': 3,
-        '15:00–17:00': 4,
-        '17:00–19:00': 5,
-      };
-
-      const aTime = slotOrder[a.slot?.name || ''] ?? 999;
-      const bTime = slotOrder[b.slot?.name || ''] ?? 999;
-      return aTime - bTime;
-    });
-
-  // Agrupar por fecha
-  const groupedByDate: { [key: string]: Reservation[] } = {};
-  weekReservations.forEach((r) => {
-    if (!groupedByDate[r.reservation_date]) {
-      groupedByDate[r.reservation_date] = [];
-    }
-    groupedByDate[r.reservation_date].push(r);
+  // Obtener los días de la semana
+  const [year, month, day] = weekStart.split('-').map(Number);
+  const start = new Date(year, month - 1, day);
+  const weekDates = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    return d.toISOString().split('T')[0];
   });
 
-  const sortedDates = Object.keys(groupedByDate).sort();
+  // Filtrar reservas de la semana actual y solo confirmadas
+  const weekReservations = reservations.filter(
+    (r) => r.reservation_date >= startStr && r.reservation_date <= endStr && r.status === 'confirmada'
+  );
 
-  const fmtDate = (s: string) =>
-    new Date(s).toLocaleDateString('es-CO', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+  // Función para obtener reserva en un slot específico
+  const getReservationCell = (dateStr: string, slotName: string): Reservation | undefined => {
+    return weekReservations.find((r) => r.reservation_date === dateStr && r.slot?.name === slotName);
+  };
 
   return (
     <div className="space-y-6">
@@ -190,79 +171,75 @@ export default function ReservationsCalendar({ reservations }: Props) {
         </div>
       </div>
 
-      {/* Reservations List */}
-      {sortedDates.length === 0 ? (
-        <div className="text-center py-12 border border-rule rounded bg-paper-soft">
-          <div className="font-mono text-sm uppercase tracking-wide text-ink-mute">
-            No tienes reservas esta semana
+      {/* Calendar Grid */}
+      <div className="border border-rule rounded overflow-x-auto bg-paper">
+        <div className="grid gap-px bg-rule" style={{ gridTemplateColumns: '120px repeat(6, 1fr)' }}>
+          {/* Header - Slot column */}
+          <div className="bg-paper-soft border-r border-rule p-3 font-mono text-[10px] uppercase tracking-wide text-ink-mute sticky left-0 z-10">
+            FRANJA
           </div>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {sortedDates.map((dateStr) => (
-            <div key={dateStr} className="space-y-3">
-              {/* Date header */}
-              <div className="sticky top-0 z-10 flex items-center gap-3 py-2 px-4 border-l-4 border-brand bg-paper-soft/80 backdrop-blur-sm">
-                <IconCalendar size={16} className="text-brand" />
-                <span className="font-display text-lg text-ink font-semibold capitalize">
-                  {fmtDate(dateStr)}
-                </span>
+
+          {/* Header - Days */}
+          {weekDates.map((dateStr, idx) => {
+            const dateObj = new Date(dateStr);
+            return (
+              <div key={dateStr} className="bg-paper-soft border-r border-rule p-3 text-center">
+                <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
+                  {DAYS[idx]}
+                </div>
+                <div className="font-display text-lg text-ink mt-1 font-semibold">{dateObj.getDate().toString().padStart(2, '0')}</div>
+              </div>
+            );
+          })}
+
+          {/* Rows for each slot */}
+          {SLOTS.map((slotName) => (
+            <div key={`slot-row-${slotName}`}>
+              {/* Slot time label */}
+              <div className="bg-paper-soft border-r border-rule p-3 font-mono text-[10px] font-semibold text-ink sticky left-0 z-10">
+                {slotName}
               </div>
 
-              {/* Reservations for this date */}
-              <ul className="divide-y divide-rule border-y border-rule">
-                {groupedByDate[dateStr]!.map((r) => (
-                  <li
-                    key={r.id}
-                    className={[
-                      'py-5 group',
-                      r.status === 'cancelada' ? 'opacity-60' : '',
-                    ].join(' ')}
+              {/* Cells for each day */}
+              {weekDates.map((dateStr) => {
+                const reservation = getReservationCell(dateStr, slotName);
+                const today = new Date().toISOString().split('T')[0];
+                const isToday = dateStr === today;
+
+                return (
+                  <div
+                    key={`${dateStr}-${slotName}`}
+                    className={`border-r border-rule p-3 min-h-[120px] flex flex-col justify-center ${
+                      isToday ? 'bg-accent/10' : 'bg-paper hover:bg-paper-soft'
+                    } transition-colors`}
                   >
-                    <div className="flex items-start justify-between gap-4 px-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <span className="font-mono text-[11px] uppercase tracking-wide text-ink-mute">
-                            {r.room?.code ?? '—'}
-                          </span>
-                          <Badge variant={r.status === 'confirmada' ? 'success' : 'default'}>
-                            {r.status === 'confirmada' ? 'Confirmada' : 'Cancelada'}
-                          </Badge>
-                        </div>
-
-                        <h3 className="font-display text-2xl text-ink leading-tight mt-1.5">
-                          {r.subject}
-                        </h3>
-
-                        <div className="mt-2 text-sm text-ink-soft flex flex-wrap items-center gap-x-5 gap-y-1">
-                          <span className="inline-flex items-center gap-1.5">
-                            <IconClock size={14} />
-                            {r.slot?.name ?? '—'}
-                          </span>
-                          <span className="font-mono text-[12px] text-ink-mute">
-                            Grupo: {r.group_name}
-                          </span>
-                          {r.professor_name ? (
-                            <span className="inline-block px-2 py-1 bg-accent/20 border border-accent/40 rounded text-[11px] font-mono uppercase tracking-wide text-accent">
-                              @{r.professor_name}
-                            </span>
-                          ) : null}
-                        </div>
-
-                        {r.status === 'cancelada' && r.cancellation_reason ? (
-                          <div className="mt-3 text-sm text-ink-soft italic border-l-2 border-rule pl-3">
-                            {r.cancellation_reason}
+                    {reservation ? (
+                      <div className="space-y-2">
+                        <div>
+                          <div className="font-display text-sm font-bold text-ink">
+                            {reservation.subject}
                           </div>
-                        ) : null}
+                          <div className="font-mono text-[9px] text-ink-mute mt-0.5">
+                            {reservation.room?.code ?? '—'}
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-ink-soft space-y-1">
+                          <div>Grupo: {reservation.group_name}</div>
+                          {reservation.professor_name && (
+                            <div className="inline-block px-2 py-0.5 bg-accent/30 rounded text-accent font-mono text-[8px] uppercase tracking-wide">
+                              @{reservation.professor_name}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
