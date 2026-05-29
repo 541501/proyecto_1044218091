@@ -156,32 +156,56 @@ function ProfileContent() {
     try {
       const body: any = { newPassword };
       if (!mustChange) body.currentPassword = currentPassword;
+      
+      console.log('[profile] Changing password...');
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(body),
       });
+      
       if (!res.ok) {
         const err = await res.json();
         addToast(err.error || 'Error al cambiar contraseña', 'error');
-      } else {
-        const data = await res.json();
-        addToast('Contraseña actualizada con éxito', 'success');
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
+        return;
+      }
+
+      addToast('Contraseña actualizada con éxito', 'success');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      
+      if (mustChange) {
+        // After forced password change, verify the change took effect
+        console.log('[profile] Forced password change successful, verifying...');
         
-        if (mustChange) {
-          // After forced password change, redirect to dashboard
-          console.log('[profile] Forced password change successful, redirecting to dashboard');
-          setTimeout(() => router.push('/dashboard'), 1500);
-        } else {
-          // For voluntary password change, update the user state with new token
-          console.log('[profile] Password change successful');
-          // The new cookie will be set automatically by the response header
-          // No need to do anything else - user is already authenticated
+        // Wait a moment for the cookie to update
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Verify the change by fetching updated user
+        try {
+          const verifyRes = await fetch('/api/auth/me', {
+            credentials: 'include',
+          });
+          
+          if (verifyRes.ok) {
+            const verifyData = await verifyRes.json();
+            console.log('[profile] Password change verified, redirecting to dashboard');
+            // Change was successful, redirect to dashboard
+            router.push('/dashboard');
+          } else {
+            console.error('[profile] Verification failed:', verifyRes.status);
+            addToast('Verificación de cambio fallida', 'error');
+          }
+        } catch (verifyErr) {
+          console.error('[profile] Verification error:', verifyErr);
+          // Even if verification fails, try to redirect - the middleware will handle it
+          router.push('/dashboard');
         }
+      } else {
+        console.log('[profile] Password change successful for existing user');
+        // For voluntary password change, user can continue navigating
       }
     } catch (err) {
       console.error('[profile] Password change error:', err);

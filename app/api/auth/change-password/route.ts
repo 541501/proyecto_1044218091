@@ -104,14 +104,21 @@ async function handleChangePassword(req: NextRequest, user: any) {
       user: updatedUser,
     });
 
-    // Set new auth cookie with updated token
+    // Set new auth cookie with updated token using the built-in API
     const isProduction = process.env.NODE_ENV === 'production';
-    response.headers.set('Set-Cookie', createAuthCookie(newToken, isProduction));
+    response.cookies.set('auth-token', newToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 24 * 60 * 60, // 24 hours
+    });
 
     // Add no-cache headers
     response.headers.set('Cache-Control', 'no-store, must-revalidate');
     response.headers.set('Pragma', 'no-cache');
 
+    console.log('[change-password] Auth cookie set successfully');
     return response;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to change password';
