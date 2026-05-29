@@ -9,6 +9,7 @@ export interface ModalAction {
   onClick: () => void;
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'ink';
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
 export interface ModalProps {
@@ -83,6 +84,7 @@ export const Modal: React.FC<ModalProps> = ({
               variant={a.variant ?? 'primary'}
               onClick={a.onClick}
               isLoading={a.isLoading}
+              disabled={a.disabled}
             >
               {a.label}
             </Button>
