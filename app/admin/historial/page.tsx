@@ -110,27 +110,6 @@ function HistorialContent() {
     }
   };
 
-  const handleSelectReservation = (reservationId: string) => {
-    setSelected((prev) => {
-      const newSelected = [...prev];
-      const index = newSelected.indexOf(reservationId);
-      if (index === -1) {
-        newSelected.push(reservationId);
-      } else {
-        newSelected.splice(index, 1);
-      }
-      return newSelected;
-    });
-  };
-
-  const handleSelectAll = () => {
-    if (selected.length === filtered.length && filtered.length > 0) {
-      setSelected([]);
-    } else {
-      setSelected(filtered.map((r) => r.id));
-    }
-  };
-
   const handleDeleteMultiple = async () => {
     if (selected.length === 0) {
       return;
@@ -274,7 +253,13 @@ function HistorialContent() {
                       <input
                         type="checkbox"
                         checked={filtered.length > 0 && selected.length === filtered.length}
-                        onClick={() => handleSelectAll()}
+                        onClick={() => {
+                          if (selected.length === filtered.length && filtered.length > 0) {
+                            setSelected([]);
+                          } else {
+                            setSelected(filtered.map((r) => r.id));
+                          }
+                        }}
                         className="w-4 h-4 cursor-pointer"
                         title={filtered.length > 0 && selected.length === filtered.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
                       />
@@ -306,7 +291,13 @@ function HistorialContent() {
                         <input
                           type="checkbox"
                           checked={selected.includes(r.id)}
-                          onClick={() => handleSelectReservation(r.id)}
+                          onClick={() => {
+                            if (selected.includes(r.id)) {
+                              setSelected(selected.filter((id) => id !== r.id));
+                            } else {
+                              setSelected([...selected, r.id]);
+                            }
+                          }}
                           className="w-4 h-4 cursor-pointer"
                           title="Seleccionar esta reserva"
                         />
