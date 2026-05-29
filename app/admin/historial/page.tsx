@@ -110,28 +110,25 @@ function HistorialContent() {
     }
   };
 
-  const handleSelectReservation = (reservationId: string, checked: boolean) => {
-    if (checked) {
-      setSelected((prev) => [...prev, reservationId]);
-    } else {
-      setSelected((prev) => prev.filter((id) => id !== reservationId));
-    }
+  const handleSelectReservation = (reservationId: string) => {
+    setSelected((prev) => {
+      const newSelected = [...prev];
+      const index = newSelected.indexOf(reservationId);
+      if (index === -1) {
+        newSelected.push(reservationId);
+      } else {
+        newSelected.splice(index, 1);
+      }
+      return newSelected;
+    });
   };
 
-  const handleSelectReservationClick = (e: React.ChangeEvent<HTMLInputElement>, reservationId: string) => {
-    handleSelectReservation(reservationId, e.currentTarget.checked);
-  };
-
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.currentTarget.checked) {
-      setSelected(filtered.map((r) => r.id));
-    } else {
+  const handleSelectAll = () => {
+    if (selected.length === filtered.length && filtered.length > 0) {
       setSelected([]);
+    } else {
+      setSelected(filtered.map((r) => r.id));
     }
-  };
-
-  const handleSelectAllClick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleSelectAll(e);
   };
 
   const handleDeleteMultiple = async () => {
@@ -277,7 +274,7 @@ function HistorialContent() {
                       <input
                         type="checkbox"
                         checked={filtered.length > 0 && selected.length === filtered.length}
-                        onChange={handleSelectAllClick}
+                        onClick={() => handleSelectAll()}
                         className="w-4 h-4 cursor-pointer"
                         title={filtered.length > 0 && selected.length === filtered.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
                       />
@@ -309,7 +306,7 @@ function HistorialContent() {
                         <input
                           type="checkbox"
                           checked={selected.includes(r.id)}
-                          onChange={(e) => handleSelectReservationClick(e, r.id)}
+                          onClick={() => handleSelectReservation(r.id)}
                           className="w-4 h-4 cursor-pointer"
                           title="Seleccionar esta reserva"
                         />
