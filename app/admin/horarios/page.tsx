@@ -42,7 +42,7 @@ function HorariosContent() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [filteredProfessors, setFilteredProfessors] = useState<User[]>([]);
 
-  // Cargar usuario actual y lista de profesores
+  // Cargar usuario actual y lista de profesores y coordinadores
   useEffect(() => {
     (async () => {
       try {
@@ -51,12 +51,12 @@ function HorariosContent() {
         const me = meRes.ok ? (await meRes.json()).user : null;
         setUser(me);
 
-        // Cargar lista de profesores
+        // Cargar lista de profesores y coordinadores
         const profRes = await fetch('/api/users/searchable');
         if (profRes.ok) {
           const allUsers = await profRes.json();
-          // Filtrar solo profesores
-          setProfessors(allUsers.filter((u: User) => u.role === 'profesor'));
+          // Filtrar profesores y coordinadores
+          setProfessors(allUsers.filter((u: User) => u.role === 'profesor' || u.role === 'coordinador'));
         }
       } finally {
         setLoading(false);
@@ -147,7 +147,7 @@ function HorariosContent() {
           </div>
           <h1 className="font-display text-5xl md:text-6xl leading-[0.95] text-ink">
             Consulta el
-            <span className="italic text-accent"> horario</span> del profesor.
+            <span className="italic text-accent"> horario</span> de usuarios.
           </h1>
         </header>
 
@@ -156,7 +156,7 @@ function HorariosContent() {
           <div className="space-y-6">
             <div>
               <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-3">
-                Buscar profesor
+                Buscar usuario
               </label>
 
               <div className="relative">
@@ -169,7 +169,7 @@ function HorariosContent() {
                       setShowDropdown(true);
                     }
                   }}
-                  placeholder={selectedProfessor ? '' : 'Escribe @nombre'}
+                  placeholder={selectedProfessor ? '' : 'Escribe @usuario'}
                   maxLength={100}
                   className="field text-sm w-full"
                   disabled={!!selectedProfessor}
@@ -221,7 +221,7 @@ function HorariosContent() {
               <div className="p-4 bg-paper-soft border border-rule rounded space-y-3">
                 <div>
                   <div className="font-mono text-[10px] uppercase tracking-wide text-ink-soft">
-                    Profesor
+                    {selectedProfessor.role === 'coordinador' ? 'Coordinador' : 'Profesor'}
                   </div>
                   <div className="font-medium text-ink">{selectedProfessor.name}</div>
                 </div>
@@ -247,8 +247,8 @@ function HorariosContent() {
           <div>
             {!selectedProfessor ? (
               <EmptyState
-                title="Selecciona un profesor"
-                description="Busca y selecciona un profesor para ver su horario de reservas."
+                title="Selecciona un usuario"
+                description="Busca y selecciona un profesor o coordinador para ver su horario de reservas."
               />
             ) : loadingReservations ? (
               <div className="text-center py-12">
@@ -257,14 +257,14 @@ function HorariosContent() {
             ) : reservations.length === 0 ? (
               <EmptyState
                 title="Sin reservas"
-                description={`${selectedProfessor.name} no tiene reservas confirmadas.`}
+                description={`${selectedProfessor.name} no tiene reservas.`}
               />
             ) : (
               <div>
                 <div className="mb-6">
                   <h2 className="font-display text-2xl text-ink mb-2">Horario de {selectedProfessor.name}</h2>
                   <p className="text-sm text-ink-mute">
-                    {reservations.length} reserva{reservations.length !== 1 ? 's' : ''} confirmada{reservations.length !== 1 ? 's' : ''}
+                    {reservations.length} reserva{reservations.length !== 1 ? 's' : ''}
                   </p>
                 </div>
 
