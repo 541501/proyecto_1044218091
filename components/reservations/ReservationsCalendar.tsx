@@ -1,7 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { IconChevronLeft, IconChevronRight } from '@/components/icons';
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconColumns,
+  IconClock,
+  IconCalendar,
+} from '@/components/icons';
+import { Badge } from '@/components/ui/Badge';
 
 interface Reservation {
   id: string;
@@ -25,52 +32,6 @@ interface Props {
   reservations: Reservation[];
 }
 
-// Horarios disponibles en el sistema
-const AVAILABLE_SLOTS = [
-  { id: '1', name: '07:00–09:00', start: '07:00', end: '09:00' },
-  { id: '2', name: '09:00–11:00', start: '09:00', end: '11:00' },
-  { id: '3', name: '11:00–13:00', start: '11:00', end: '13:00' },
-  { id: '4', name: '13:00–15:00', start: '13:00', end: '15:00' },
-  { id: '5', name: '15:00–17:00', start: '15:00', end: '17:00' },
-  { id: '6', name: '17:00–19:00', start: '17:00', end: '19:00' },
-];
-
-const WEEKDAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-
-function getWeekDays(startDateStr: string) {
-  const days: { date: string; dayName: string; dayNum: number }[] = [];
-
-  if (!startDateStr || startDateStr === '') return days;
-
-  // Parsear la fecha correctamente (startDateStr es formato "YYYY-MM-DD")
-  const parts = startDateStr.split('-');
-  if (parts.length !== 3) return days;
-
-  const year = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10);
-  const day = parseInt(parts[2], 10);
-
-  const start = new Date(year, month - 1, day);
-
-  for (let i = 0; i < 6; i++) {
-    const current = new Date(start);
-    current.setDate(current.getDate() + i);
-    const dateStr = [
-      current.getFullYear(),
-      String(current.getMonth() + 1).padStart(2, '0'),
-      String(current.getDate()).padStart(2, '0'),
-    ].join('-');
-
-    days.push({
-      date: dateStr,
-      dayName: WEEKDAYS[i],
-      dayNum: current.getDate(),
-    });
-  }
-
-  return days;
-}
-
 function getMonday(date: Date): string {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
@@ -86,6 +47,22 @@ function getMonday(date: Date): string {
     String(monday.getMonth() + 1).padStart(2, '0'),
     String(monday.getDate()).padStart(2, '0'),
   ].join('-');
+}
+
+function getWeekRange(startDateStr: string) {
+  const [year, month, day] = startDateStr.split('-').map(Number);
+  const start = new Date(year, month - 1, day);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 5);
+
+  return {
+    startStr: startDateStr,
+    endStr: [
+      end.getFullYear(),
+      String(end.getMonth() + 1).padStart(2, '0'),
+      String(end.getDate()).padStart(2, '0'),
+    ].join('-'),
+  };
 }
 
 export default function ReservationsCalendar({ reservations }: Props) {
@@ -123,31 +100,59 @@ export default function ReservationsCalendar({ reservations }: Props) {
     setWeekStart(mondayStr);
   };
 
-  const weekDays = getWeekDays(weekStart);
-
-  const getReservationForSlot = (date: string, slotName: string) => {
-    return reservations.find(
-      (r) =>
-        r.reservation_date === date &&
-        r.slot?.name === slotName &&
-        r.status === 'confirmada'
-    );
-  };
-
   const formatDateRange = () => {
-    const days = getWeekDays(weekStart);
-    if (days.length === 0) return '';
-    const start = days[0];
-    const end = days[5];
+    if (!weekStart) return '';
+    const [year, month, day] = weekStart.split('-').map(Number);
+    const start = new Date(year, month - 1, day);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 5);
 
-    const startDate = new Date(weekStart);
-    const endDate = new Date(weekStart);
-    endDate.setDate(endDate.getDate() + 5);
-
-    return `${startDate.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+    return `${start.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}`;
   };
 
   if (!isClient) return null;
+
+  const { startStr, endStr } = getWeekRange(weekStart);
+
+  // Filtrar reservas de la semana actual y ordenar por fecha y hora
+  const weekReservations = reservations
+    .filter((r) => r.reservation_date >= startStr && r.reservation_date <= endStr && r.status === 'confirmada')
+    .sort((a, b) => {
+      const dateCompare = new Date(a.reservation_date).getTime() - new Date(b.reservation_date).getTime();
+      if (dateCompare !== 0) return dateCompare;
+
+      const slotOrder: { [key: string]: number } = {
+        '07:00–09:00': 0,
+        '09:00–11:00': 1,
+        '11:00–13:00': 2,
+        '13:00–15:00': 3,
+        '15:00–17:00': 4,
+        '17:00–19:00': 5,
+      };
+
+      const aTime = slotOrder[a.slot?.name || ''] ?? 999;
+      const bTime = slotOrder[b.slot?.name || ''] ?? 999;
+      return aTime - bTime;
+    });
+
+  // Agrupar por fecha
+  const groupedByDate: { [key: string]: Reservation[] } = {};
+  weekReservations.forEach((r) => {
+    if (!groupedByDate[r.reservation_date]) {
+      groupedByDate[r.reservation_date] = [];
+    }
+    groupedByDate[r.reservation_date].push(r);
+  });
+
+  const sortedDates = Object.keys(groupedByDate).sort();
+
+  const fmtDate = (s: string) =>
+    new Date(s).toLocaleDateString('es-CO', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
 
   return (
     <div className="space-y-6">
@@ -185,118 +190,79 @@ export default function ReservationsCalendar({ reservations }: Props) {
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="border border-rule rounded overflow-hidden bg-paper">
-        <div className="grid gap-px bg-rule" style={{ gridTemplateColumns: '140px repeat(6, 1fr)' }}>
-          {/* Header - Time slots column */}
-          <div className="bg-paper-soft border-r border-rule p-4 font-mono text-[10px] uppercase tracking-wide text-ink-mute sticky left-0 z-10">
-            Franja horaria
+      {/* Reservations List */}
+      {sortedDates.length === 0 ? (
+        <div className="text-center py-12 border border-rule rounded bg-paper-soft">
+          <div className="font-mono text-sm uppercase tracking-wide text-ink-mute">
+            No tienes reservas esta semana
           </div>
-
-          {/* Header - Days */}
-          {weekDays.map((day) => (
-            <div
-              key={day.date}
-              className="bg-paper-soft border-r border-rule p-4 text-center"
-            >
-              <div className="font-mono text-[10px] uppercase tracking-wide text-ink-mute">
-                {day.dayName}
-              </div>
-              <div className="font-display text-2xl text-ink mt-1 font-semibold">{day.dayNum}</div>
-            </div>
-          ))}
-
-          {/* Slots */}
-          {AVAILABLE_SLOTS.map((slot) => (
-            <div key={`slot-${slot.id}`}>
-              {/* Slot label */}
-              <div className="bg-paper-soft border-r border-rule p-4 font-mono text-[11px] font-semibold text-ink sticky left-0 z-10">
-                {slot.name}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {sortedDates.map((dateStr) => (
+            <div key={dateStr} className="space-y-3">
+              {/* Date header */}
+              <div className="sticky top-0 z-10 flex items-center gap-3 py-2 px-4 border-l-4 border-brand bg-paper-soft/80 backdrop-blur-sm">
+                <IconCalendar size={16} className="text-brand" />
+                <span className="font-display text-lg text-ink font-semibold capitalize">
+                  {fmtDate(dateStr)}
+                </span>
               </div>
 
-              {/* Slot cells for each day */}
-              {weekDays.map((day) => {
-                const reservation = getReservationForSlot(day.date, slot.name);
-                const isToday = new Date().toISOString().split('T')[0] === day.date;
-                
-                return (
-                  <div
-                    key={`${day.date}-${slot.id}`}
-                    className={`border-r border-rule p-3 min-h-[140px] bg-paper transition-colors ${
-                      isToday ? 'bg-accent/5' : 'hover:bg-paper-soft'
-                    } ${reservation ? '' : 'border-dashed border-rule/40'}`}
+              {/* Reservations for this date */}
+              <ul className="divide-y divide-rule border-y border-rule">
+                {groupedByDate[dateStr]!.map((r) => (
+                  <li
+                    key={r.id}
+                    className={[
+                      'py-5 group',
+                      r.status === 'cancelada' ? 'opacity-60' : '',
+                    ].join(' ')}
                   >
-                    {reservation ? (
-                      <div className="h-full flex flex-col">
-                        <div className="flex-1 flex flex-col justify-center space-y-2">
-                          {/* Materia */}
-                          <div>
-                            <div className="font-display text-sm font-bold text-ink leading-tight">
-                              {reservation.subject}
-                            </div>
-                          </div>
-
-                          {/* Detalles */}
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-[9px] uppercase tracking-wide text-ink-mute">
-                                Salón:
-                              </span>
-                              <span className="font-mono text-[11px] font-semibold text-ink">
-                                {reservation.room?.code || '—'}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-[9px] uppercase tracking-wide text-ink-mute">
-                                Grupo:
-                              </span>
-                              <span className="font-mono text-[10px] text-ink-soft">
-                                {reservation.group_name}
-                              </span>
-                            </div>
-
-                            {reservation.professor_name ? (
-                              <div className="flex items-center gap-2 pt-1">
-                                <span className="inline-block px-2 py-0.5 bg-accent/20 border border-accent/40 rounded text-[8px] font-mono uppercase tracking-wide text-accent font-semibold">
-                                  @{reservation.professor_name}
-                                </span>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        {/* Status badge */}
-                        <div className="mt-2 pt-2 border-t border-rule/30">
-                          <span className={`inline-block px-2 py-1 rounded text-[9px] font-mono uppercase tracking-wide font-semibold ${
-                            reservation.status === 'confirmada'
-                              ? 'bg-ok/20 text-ok border border-ok/30'
-                              : 'bg-ink-mute/20 text-ink-mute border border-ink-mute/30'
-                          }`}>
-                            {reservation.status === 'confirmada' ? 'Confirmada' : 'Cancelada'}
+                    <div className="flex items-start justify-between gap-4 px-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="font-mono text-[11px] uppercase tracking-wide text-ink-mute">
+                            {r.room?.code ?? '—'}
                           </span>
+                          <Badge variant={r.status === 'confirmada' ? 'success' : 'default'}>
+                            {r.status === 'confirmada' ? 'Confirmada' : 'Cancelada'}
+                          </Badge>
                         </div>
+
+                        <h3 className="font-display text-2xl text-ink leading-tight mt-1.5">
+                          {r.subject}
+                        </h3>
+
+                        <div className="mt-2 text-sm text-ink-soft flex flex-wrap items-center gap-x-5 gap-y-1">
+                          <span className="inline-flex items-center gap-1.5">
+                            <IconClock size={14} />
+                            {r.slot?.name ?? '—'}
+                          </span>
+                          <span className="font-mono text-[12px] text-ink-mute">
+                            Grupo: {r.group_name}
+                          </span>
+                          {r.professor_name ? (
+                            <span className="inline-block px-2 py-1 bg-accent/20 border border-accent/40 rounded text-[11px] font-mono uppercase tracking-wide text-accent">
+                              @{r.professor_name}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {r.status === 'cancelada' && r.cancellation_reason ? (
+                          <div className="mt-3 text-sm text-ink-soft italic border-l-2 border-rule pl-3">
+                            {r.cancellation_reason}
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
-                );
-              })}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-wide text-ink-soft p-4 border border-rule rounded bg-paper-soft">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-ok/20 border border-ok/30 rounded" />
-          <span>Confirmada</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-accent/20 border border-accent/30 rounded" />
-          <span>Asignada a ti</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
