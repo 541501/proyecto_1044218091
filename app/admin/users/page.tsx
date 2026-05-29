@@ -44,6 +44,20 @@ const SCHOOL_OPTIONS = [
   { value: 'escuela_ciencias', label: 'Ciencias Exactas e Ing' },
 ] as const;
 
+const getRealRole = (uiRole: Role, specialty?: string): Role => {
+  if (uiRole === 'coordinador' && specialty) {
+    return specialty as Role;
+  }
+  return uiRole;
+};
+
+const getUIRole = (realRole: Role): { role: 'profesor' | 'coordinador' | 'admin'; specialty?: string } => {
+  if (realRole.startsWith('escuela_')) {
+    return { role: 'coordinador', specialty: realRole };
+  }
+  return { role: realRole as 'profesor' | 'admin' };
+};
+
 export default function AdminUsersPage() {
   const router = useRouter();
   const [me, setMe] = useState<any>(null);
@@ -56,6 +70,7 @@ export default function AdminUsersPage() {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<Role>('profesor');
+  const [newCoordinadorSpecialty, setNewCoordinadorSpecialty] = useState<string>('escuela_psicologia');
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -66,6 +81,7 @@ export default function AdminUsersPage() {
   const [editTarget, setEditTarget] = useState<UserRow | null>(null);
   const [editName, setEditName] = useState('');
   const [editRole, setEditRole] = useState<Role>('profesor');
+  const [editCoordinadorSpecialty, setEditCoordinadorSpecialty] = useState<string>('escuela_psicologia');
   const [editActive, setEditActive] = useState(true);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -104,11 +120,12 @@ export default function AdminUsersPage() {
     }
     setSubmitting(true);
     try {
+      const roleToSave = getRealRole(newRole, newCoordinadorSpecialty);
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name: newName.trim(), email: newEmail.trim(), role: newRole }),
+        body: JSON.stringify({ name: newName.trim(), email: newEmail.trim(), role: roleToSave }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -135,14 +152,19 @@ export default function AdminUsersPage() {
     setNewName('');
     setNewEmail('');
     setNewRole('profesor');
+    setNewCoordinadorSpecialty('escuela_psicologia');
     setTempPassword(null);
     setCreateError(null);
   };
 
   const openEditModal = (u: UserRow) => {
+    const uiRole = getUIRole(u.role);
     setEditTarget(u);
     setEditName(u.name);
-    setEditRole(u.role);
+    setEditRole(uiRole.role as Role);
+    if (uiRole.specialty) {
+      setEditCoordinadorSpecialty(uiRole.specialty);
+    }
     setEditActive(u.is_active);
     setEditError(null);
     setOpenEdit(true);
@@ -153,13 +175,14 @@ export default function AdminUsersPage() {
     setEditError(null);
     setSubmitting(true);
     try {
+      const roleToSave = getRealRole(editRole, editCoordinadorSpecialty);
       const res = await fetch(`/api/users/${editTarget.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           name: editName.trim(),
-          role: editRole,
+          role: roleToSave,
           is_active: editActive,
         }),
       });
@@ -432,14 +455,20 @@ export default function AdminUsersPage() {
                   03 · Rol
                 </label>
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    {(['profesor', 'admin'] as Role[]).map((r) => {
-                      const active = newRole === r;
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['profesor', 'coordinador', 'admin'] as const).map((r) => {
+                      const active = newRole === r || (newRole.startsWith('escuela_') && r === 'coordinador');
                       return (
                         <button
                           key={r}
                           type="button"
-                          onClick={() => setNewRole(r)}
+                          onClick={() => {
+                            if (r === 'coordinador') {
+                              setNewRole('escuela_psicologia');
+                            } else {
+                              setNewRole(r);
+                            }
+                          }}
                           className={[
                             'px-3 py-2 border text-sm transition-colors',
                             active
@@ -448,38 +477,43 @@ export default function AdminUsersPage() {
                           ].join(' ')}
                         >
                           <span className="font-mono text-[11px] uppercase tracking-wide">
-                            {ROLE_LABEL[r]}
+                            {r === 'coordinador' ? 'Coordinador' : ROLE_LABEL[r]}
                           </span>
                         </button>
                       );
                     })}
                   </div>
                   
-                  <div>
-                    <div className="text-xs font-mono text-ink-soft mb-2">Escuela</div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {SCHOOL_OPTIONS.map((opt) => {
-                        const active = newRole === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setNewRole(opt.value)}
-                            className={[
-                              'px-3 py-2 border text-sm transition-colors',
-                              active
-                                ? 'bg-brand text-paper border-brand'
-                                : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
-                            ].join(' ')}
-                          >
-                            <span className="font-mono text-[10px] uppercase tracking-wide">
-                              {opt.label}
-                            </span>
-                          </button>
-                        );
-                      })}
+                  {(newRole === 'coordinador' || newRole.startsWith('escuela_')) && (
+                    <div>
+                      <div className="text-xs font-mono text-ink-soft mb-2">Especialidad</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {SCHOOL_OPTIONS.map((opt) => {
+                          const active = newCoordinadorSpecialty === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                setNewCoordinadorSpecialty(opt.value);
+                                setNewRole(opt.value);
+                              }}
+                              className={[
+                                'px-3 py-2 border text-sm transition-colors',
+                                active
+                                  ? 'bg-brand text-paper border-brand'
+                                  : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
+                              ].join(' ')}
+                            >
+                              <span className="font-mono text-[10px] uppercase tracking-wide">
+                                {opt.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -524,14 +558,20 @@ export default function AdminUsersPage() {
                 Rol
               </label>
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  {(['profesor', 'admin'] as Role[]).map((r) => {
-                    const active = editRole === r;
+                <div className="grid grid-cols-3 gap-2">
+                  {(['profesor', 'coordinador', 'admin'] as const).map((r) => {
+                    const active = editRole === r || (editRole.startsWith('escuela_') && r === 'coordinador');
                     return (
                       <button
                         key={r}
                         type="button"
-                        onClick={() => setEditRole(r)}
+                        onClick={() => {
+                          if (r === 'coordinador') {
+                            setEditRole('coordinador' as Role);
+                          } else {
+                            setEditRole(r as Role);
+                          }
+                        }}
                         className={[
                           'px-3 py-2 border text-sm transition-colors',
                           active
@@ -540,38 +580,43 @@ export default function AdminUsersPage() {
                         ].join(' ')}
                       >
                         <span className="font-mono text-[11px] uppercase tracking-wide">
-                          {ROLE_LABEL[r]}
+                          {r === 'coordinador' ? 'Coordinador' : ROLE_LABEL[r]}
                         </span>
                       </button>
                     );
                   })}
                 </div>
                 
-                <div>
-                  <div className="text-xs font-mono text-ink-soft mb-2">Escuela</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {SCHOOL_OPTIONS.map((opt) => {
-                      const active = editRole === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => setEditRole(opt.value)}
-                          className={[
-                            'px-3 py-2 border text-sm transition-colors',
-                            active
-                              ? 'bg-brand text-paper border-brand'
-                              : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
-                          ].join(' ')}
-                        >
-                          <span className="font-mono text-[10px] uppercase tracking-wide">
-                            {opt.label}
-                          </span>
-                        </button>
-                      );
-                    })}
+                {(editRole === 'coordinador' || editRole.startsWith('escuela_')) && (
+                  <div>
+                    <div className="text-xs font-mono text-ink-soft mb-2">Especialidad</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {SCHOOL_OPTIONS.map((opt) => {
+                        const active = editCoordinadorSpecialty === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              setEditCoordinadorSpecialty(opt.value);
+                              setEditRole(opt.value as Role);
+                            }}
+                            className={[
+                              'px-3 py-2 border text-sm transition-colors',
+                              active
+                                ? 'bg-brand text-paper border-brand'
+                                : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
+                            ].join(' ')}
+                          >
+                            <span className="font-mono text-[10px] uppercase tracking-wide">
+                              {opt.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
             <label className="inline-flex items-center gap-3 cursor-pointer">
