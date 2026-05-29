@@ -13,9 +13,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ professorId: string }> }
 ) {
+  const resolvedParams = await params;
   return withRole(['coordinador', 'admin'])(
-    async (req: NextRequest, user: JWTPayload, professorId: string) => {
+    async (req: NextRequest, user: JWTPayload) => {
       try {
+        const professorId = resolvedParams.professorId;
         console.log('[GET /api/reservations/professor] Fetching reservations for professorId:', professorId);
         
         // Obtener todas las reservas del usuario (igual que getMyReservations)
@@ -31,5 +33,5 @@ export async function GET(
         return NextResponse.json({ error: message }, { status: 500 });
       }
     }
-  )(request, await params);
+  )(request);
 }
