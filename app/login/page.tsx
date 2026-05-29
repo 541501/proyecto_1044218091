@@ -127,13 +127,13 @@ export default function LoginPage() {
                 <span>Reporte de ocupación · CSV</span>
               </li>
             </ul>
-          </div>
-          </div>
+            </div>
 
-          <div className="relative z-10 mt-12 text-[11px] font-mono uppercase tracking-wide text-ink-mute">
-            <p>SIST0200 · Lógica y Programación</p>
-            <p className="mt-1">Juan Gutiérrez · Doc 1044218091</p>
-            <p className="mt-3">Agradecimiento a Jhonatan Castro</p>
+            <div className="mt-12 text-[11px] font-mono uppercase tracking-wide text-ink-mute">
+              <p>SIST0200 · Lógica y Programación</p>
+              <p className="mt-1">Juan Gutiérrez · Doc 1044218091</p>
+              <p className="mt-3">Agradecimiento a Jhonatan Castro</p>
+            </div>
           </div>
         </div>
 
