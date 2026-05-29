@@ -17,6 +17,7 @@ import {
   IconDoorway,
   IconArchive,
   IconSettings,
+  IconClock,
 } from '@/components/icons';
 
 export interface SidebarProps {
@@ -70,10 +71,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ role, userName }) => {
 
   const adminItems: NavItem[] = [
     { label: 'Solicitudes', hint: '05', href: '/admin/requests', icon: <IconClipboard size={18} />, show: true },
-    { label: 'Salones', hint: '06', href: '/admin/rooms', icon: <IconDoorway size={18} />, show: true },
-    { label: 'Usuarios', hint: '07', href: '/admin/users', icon: <IconUsers size={18} />, show: true },
-    { label: 'Auditoría', hint: '08', href: '/admin/audit', icon: <IconArchive size={18} />, show: true },
-    { label: 'Sistema', hint: '09', href: '/admin/db-setup', icon: <IconSettings size={18} />, show: true },
+    { label: 'Horarios', hint: '06', href: '/admin/horarios', icon: <IconClock size={18} />, show: true },
+    { label: 'Salones', hint: '07', href: '/admin/rooms', icon: <IconDoorway size={18} />, show: true },
+    { label: 'Usuarios', hint: '08', href: '/admin/users', icon: <IconUsers size={18} />, show: true },
+    { label: 'Auditoría', hint: '09', href: '/admin/audit', icon: <IconArchive size={18} />, show: true },
+    { label: 'Sistema', hint: '10', href: '/admin/db-setup', icon: <IconSettings size={18} />, show: true },
   ];
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/');
