@@ -13,12 +13,12 @@ export const GET = authenticatedRoute(async (req: NextRequest, user: JWTPayload)
   try {
     const supabase = getSupabaseAdmin();
     
-    // Obtener todos los usuarios activos con roles profesor, coordinador o admin
+    // Obtener todos los usuarios activos con roles profesor, coordinador, escuela o admin
     const { data, error } = await supabase
       .from('users')
       .select('id, name, email, role')
       .eq('is_active', true)
-      .in('role', ['profesor', 'coordinador', 'admin'])
+      .in('role', ['profesor', 'coordinador', 'escuela_psicologia', 'escuela_derecho', 'escuela_ciencias', 'admin'])
       .order('name', { ascending: true });
 
     if (error) {

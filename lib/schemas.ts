@@ -27,11 +27,11 @@ export const changePasswordSchema = z.object({
 export const createUserSchema = z.object({
   name: z.string().min(1, 'Nombre requerido').max(100),
   email: z.string().email('Email inválido').transform(e => e.toLowerCase()),
-  role: z.enum(['profesor', 'coordinador', 'admin']),
+  role: z.enum(['profesor', 'coordinador', 'escuela_psicologia', 'escuela_derecho', 'escuela_ciencias', 'admin']),
 });
 
 export const updateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  role: z.enum(['profesor', 'coordinador', 'admin']).optional(),
+  role: z.enum(['profesor', 'coordinador', 'escuela_psicologia', 'escuela_derecho', 'escuela_ciencias', 'admin']).optional(),
   is_active: z.boolean().optional(),
 });

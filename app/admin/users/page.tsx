@@ -18,7 +18,7 @@ import {
   IconTrash,
 } from '@/components/icons';
 
-type Role = 'profesor' | 'coordinador' | 'admin';
+type Role = 'profesor' | 'coordinador' | 'escuela_psicologia' | 'escuela_derecho' | 'escuela_ciencias' | 'admin';
 
 interface UserRow {
   id: string;
@@ -32,8 +32,17 @@ interface UserRow {
 const ROLE_LABEL: Record<Role, string> = {
   profesor: 'Profesor',
   coordinador: 'Coordinador',
+  escuela_psicologia: 'Escuela Psicología',
+  escuela_derecho: 'Escuela Derecho',
+  escuela_ciencias: 'Escuela Ciencias Exactas e Ing',
   admin: 'Administrador',
 };
+
+const SCHOOL_OPTIONS = [
+  { value: 'escuela_psicologia', label: 'Psicología' },
+  { value: 'escuela_derecho', label: 'Derecho' },
+  { value: 'escuela_ciencias', label: 'Ciencias Exactas e Ing' },
+] as const;
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -422,27 +431,55 @@ export default function AdminUsersPage() {
                 <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
                   03 · Rol
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['profesor', 'coordinador', 'admin'] as Role[]).map((r) => {
-                    const active = newRole === r;
-                    return (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => setNewRole(r)}
-                        className={[
-                          'px-3 py-2 border text-sm transition-colors',
-                          active
-                            ? 'bg-brand text-paper border-brand'
-                            : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
-                        ].join(' ')}
-                      >
-                        <span className="font-mono text-[11px] uppercase tracking-wide">
-                          {ROLE_LABEL[r]}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['profesor', 'admin'] as Role[]).map((r) => {
+                      const active = newRole === r;
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setNewRole(r)}
+                          className={[
+                            'px-3 py-2 border text-sm transition-colors',
+                            active
+                              ? 'bg-brand text-paper border-brand'
+                              : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
+                          ].join(' ')}
+                        >
+                          <span className="font-mono text-[11px] uppercase tracking-wide">
+                            {ROLE_LABEL[r]}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <div>
+                    <div className="text-xs font-mono text-ink-soft mb-2">Escuela</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {SCHOOL_OPTIONS.map((opt) => {
+                        const active = newRole === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setNewRole(opt.value)}
+                            className={[
+                              'px-3 py-2 border text-sm transition-colors',
+                              active
+                                ? 'bg-brand text-paper border-brand'
+                                : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
+                            ].join(' ')}
+                          >
+                            <span className="font-mono text-[10px] uppercase tracking-wide">
+                              {opt.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -486,27 +523,55 @@ export default function AdminUsersPage() {
               <label className="block font-mono text-[10px] uppercase tracking-wide text-ink-soft mb-2">
                 Rol
               </label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['profesor', 'coordinador', 'admin'] as Role[]).map((r) => {
-                  const active = editRole === r;
-                  return (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setEditRole(r)}
-                      className={[
-                        'px-3 py-2 border text-sm transition-colors',
-                        active
-                          ? 'bg-brand text-paper border-brand'
-                          : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
-                      ].join(' ')}
-                    >
-                      <span className="font-mono text-[11px] uppercase tracking-wide">
-                        {ROLE_LABEL[r]}
-                      </span>
-                    </button>
-                  );
-                })}
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {(['profesor', 'admin'] as Role[]).map((r) => {
+                    const active = editRole === r;
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setEditRole(r)}
+                        className={[
+                          'px-3 py-2 border text-sm transition-colors',
+                          active
+                            ? 'bg-brand text-paper border-brand'
+                            : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
+                        ].join(' ')}
+                      >
+                        <span className="font-mono text-[11px] uppercase tracking-wide">
+                          {ROLE_LABEL[r]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <div>
+                  <div className="text-xs font-mono text-ink-soft mb-2">Escuela</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SCHOOL_OPTIONS.map((opt) => {
+                      const active = editRole === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setEditRole(opt.value)}
+                          className={[
+                            'px-3 py-2 border text-sm transition-colors',
+                            active
+                              ? 'bg-brand text-paper border-brand'
+                              : 'border-rule text-ink-soft hover:border-ink hover:text-ink',
+                          ].join(' ')}
+                        >
+                          <span className="font-mono text-[10px] uppercase tracking-wide">
+                            {opt.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
             <label className="inline-flex items-center gap-3 cursor-pointer">

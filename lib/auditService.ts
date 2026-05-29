@@ -1,5 +1,6 @@
 import 'server-only';
 import { getSupabaseAdmin } from './supabase';
+import { UserRole } from './types';
 
 export type AuditOperation = 'INSERT' | 'UPDATE' | 'DELETE';
 export type AuditEntity = 'reservation' | 'room' | 'user';
@@ -9,7 +10,7 @@ export interface AuditEntry {
   timestamp: string;
   user_id: string;
   user_email: string;
-  user_role: 'profesor' | 'coordinador' | 'admin';
+  user_role: UserRole;
   operation: AuditOperation;
   entity: AuditEntity;
   entity_id?: string | null;

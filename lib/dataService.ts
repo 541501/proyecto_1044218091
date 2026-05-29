@@ -22,6 +22,7 @@ import {
   CreateRoomRequest,
   UpdateRoomRequest,
   CreateReservationRequest,
+  UserRole,
 } from './types';
 
 // ============================================================================
@@ -487,7 +488,7 @@ export async function getMyReservations(
 export async function createReservation(
   userId: string,
   data: CreateReservationRequest,
-  userRole: 'profesor' | 'coordinador' | 'admin' = 'profesor',
+  userRole: UserRole = 'profesor',
 ): Promise<Reservation> {
   const { validateReservationRules, checkConflict } = await import('./reservationService');
 
@@ -523,6 +524,7 @@ export async function createReservation(
     // Determinar el status según el rol
     // Profesor: crea solicitud (pendiente)
     // Admin/Coordinador: crea reserva confirmada (confirmada)
+    const isCoordinadorOrAdmin = userRole === 'admin' || userRole === 'coordinador' || userRole.startsWith('escuela_');
     const status = userRole === 'profesor' ? 'pendiente' : 'confirmada';
     console.log('[createReservation] Using status:', status, 'for role:', userRole);
     
@@ -593,7 +595,7 @@ export async function createReservation(
 export async function createRecurringReservation(
   userId: string,
   data: CreateReservationRequest,
-  userRole: 'profesor' | 'coordinador' | 'admin' = 'profesor',
+  userRole: UserRole = 'profesor',
 ): Promise<{ parent: Reservation; instances: Reservation[] }> {
   console.log('[createRecurringReservation] Starting for user:', userId, 'role:', userRole, 'data:', data);
 
@@ -735,7 +737,8 @@ export async function cancelReservation(
       }
     }
 
-    if ((role === 'coordinador' || role === 'admin') && !reason) {
+    const isCoordinador = role === 'coordinador' || role.startsWith('escuela_');
+    if ((isCoordinador || role === 'admin') && !reason) {
       const err = new Error(
         'El motivo de cancelación es obligatorio para coordinadores y administradores',
       ) as any;
