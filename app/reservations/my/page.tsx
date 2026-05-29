@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Reservation } from '@/lib/types';
 import ReservationsCalendar from '@/components/reservations/ReservationsCalendar';
 import {
   IconDot,
@@ -17,25 +18,6 @@ import {
   IconColumns,
   IconArrowRight,
 } from '@/components/icons';
-
-interface Reservation {
-  id: string;
-  room_id: string;
-  slot_id: string;
-  professor_id: string;
-  reservation_date: string;
-  subject: string;
-  group_name: string;
-  professor_name?: string;
-  reason?: string | null;
-  status: 'pendiente' | 'confirmada' | 'rechazada' | 'cancelada';
-  created_at: string;
-  cancellation_reason?: string | null;
-  room?: { code: string; block_id: string };
-  slot?: { name: string; start_time: string; end_time: string };
-  block?: { code: string; name: string };
-  professor?: { name: string; email: string };
-}
 
 interface User {
   id: string;
