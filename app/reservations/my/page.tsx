@@ -90,6 +90,18 @@ function MyReservationsContent() {
     return r.status === 'confirmada' && r.created_by === user?.id;
   };
 
+  // Determina si el usuario puede borrar una reserva específica
+  // Profesores: solo sus propias reservas
+  // Admin/Coordinador: pueden borrar cualquier reserva en ciertos casos
+  const canDeleteReservation = (r: Reservation): boolean => {
+    if (user?.role === 'profesor') {
+      // Los profesores solo pueden borrar sus propias reservas que solicitaron
+      return isRequestedByUser(r);
+    }
+    // Admin y coordinador pueden borrar en más casos
+    return isRequestedByUser(r) || r.status === 'pendiente' || canCancel(r);
+  };
+
   const handleConfirmCancel = async () => {
     if (!selected) return;
 
@@ -389,44 +401,60 @@ function MyReservationsContent() {
                       ) : null}
                     </div>
 
-                    {isRequestedByUser(r) ? (
-                      <button
-                        onClick={() => {
-                          setSelected(r);
-                          setShowDeleteModal(true);
-                        }}
-                        className="text-ink-mute hover:text-bad transition-colors p-2"
-                        aria-label="Borrar reserva"
-                        title="Borrar esta reserva después de la clase"
-                      >
-                        <IconTrash size={18} />
-                      </button>
-                    ) : r.status === 'pendiente' ? (
-                      <button
-                        onClick={() => {
-                          setSelected(r);
-                          setShowDeleteModal(true);
-                        }}
-                        className="text-ink-mute hover:text-bad transition-colors p-2"
-                        aria-label="Eliminar solicitud"
-                        title="Eliminar esta solicitud pendiente"
-                      >
-                        <IconTrash size={18} />
-                      </button>
-                    ) : canCancel(r) ? (
-                      <button
-                        onClick={() => {
-                          setSelected(r);
-                          setCancelReason('');
-                          setShowCancelModal(true);
-                        }}
-                        className="text-ink-mute hover:text-bad transition-colors p-2"
-                        aria-label="Cancelar reserva"
-                        title="Cancelar esta reserva confirmada"
-                      >
-                        <IconTrash size={18} />
-                      </button>
-                    ) : null}
+                    {user?.role === 'profesor'
+                      ? // Profesores: solo pueden borrar sus propias reservas
+                        isRequestedByUser(r) ? (
+                          <button
+                            onClick={() => {
+                              setSelected(r);
+                              setShowDeleteModal(true);
+                            }}
+                            className="text-ink-mute hover:text-bad transition-colors p-2"
+                            aria-label="Borrar reserva"
+                            title="Borrar esta reserva después de la clase"
+                          >
+                            <IconTrash size={18} />
+                          </button>
+                        ) : null
+                      : // Admin/Coordinador: pueden borrar en varios casos
+                        isRequestedByUser(r) ? (
+                          <button
+                            onClick={() => {
+                              setSelected(r);
+                              setShowDeleteModal(true);
+                            }}
+                            className="text-ink-mute hover:text-bad transition-colors p-2"
+                            aria-label="Borrar reserva"
+                            title="Borrar esta reserva después de la clase"
+                          >
+                            <IconTrash size={18} />
+                          </button>
+                        ) : r.status === 'pendiente' ? (
+                          <button
+                            onClick={() => {
+                              setSelected(r);
+                              setShowDeleteModal(true);
+                            }}
+                            className="text-ink-mute hover:text-bad transition-colors p-2"
+                            aria-label="Eliminar solicitud"
+                            title="Eliminar esta solicitud pendiente"
+                          >
+                            <IconTrash size={18} />
+                          </button>
+                        ) : canCancel(r) ? (
+                          <button
+                            onClick={() => {
+                              setSelected(r);
+                              setCancelReason('');
+                              setShowCancelModal(true);
+                            }}
+                            className="text-ink-mute hover:text-bad transition-colors p-2"
+                            aria-label="Cancelar reserva"
+                            title="Cancelar esta reserva confirmada"
+                          >
+                            <IconTrash size={18} />
+                          </button>
+                        ) : null}
                   </div>
 
                   {/* Expandable instances for recurring reservations */}
@@ -454,6 +482,7 @@ function MyReservationsContent() {
                               className="text-ink-mute hover:text-bad transition-colors p-1"
                               aria-label="Eliminar esta instancia"
                               title="Eliminar esta instancia"
+                              disabled={user?.role === 'profesor' && !isRequestedByUser(instance)}
                             >
                               <IconTrash size={14} />
                             </button>
