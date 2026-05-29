@@ -32,6 +32,7 @@ export async function middleware(req: NextRequest) {
     '/api/system/mode',
     '/api/system/diagnose',
     '/api/system/bootstrap',
+    '/classsport-login.png',
   ];
 
   if (publicRoutes.includes(pathname)) {
