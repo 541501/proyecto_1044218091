@@ -286,7 +286,7 @@ function MyReservationsContent() {
                       ) : r.status === 'pendiente' ? (
                         <Badge variant="default">Pendiente</Badge>
                       ) : r.status === 'rechazada' ? (
-                        <Badge variant="warn">Rechazada</Badge>
+                        <Badge variant="warning">Rechazada</Badge>
                       ) : (
                         <Badge variant="default">Cancelada</Badge>
                       )}
