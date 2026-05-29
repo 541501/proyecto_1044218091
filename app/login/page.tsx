@@ -92,9 +92,10 @@ export default function LoginPage() {
               className="w-full h-full object-cover"
             />
           </div>
+
           {/* Content */}
           <div className="relative z-10">
-            <div>
+            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-ink-mute">
               <IconDot size={6} className="text-accent" />
               <span>Institución Universitaria · Edición 2026</span>
             </div>
@@ -127,13 +128,13 @@ export default function LoginPage() {
                 <span>Reporte de ocupación · CSV</span>
               </li>
             </ul>
-            </div>
+          </div>
 
-            <div className="mt-12 text-[11px] font-mono uppercase tracking-wide text-ink-mute">
-              <p>SIST0200 · Lógica y Programación</p>
-              <p className="mt-1">Juan Gutiérrez · Doc 1044218091</p>
-              <p className="mt-3">Agradecimiento a Jhonatan Castro</p>
-            </div>
+          {/* Footer */}
+          <div className="relative z-10 text-[11px] font-mono uppercase tracking-wide text-ink-mute">
+            <p>SIST0200 · Lógica y Programación</p>
+            <p className="mt-1">Juan Gutiérrez · Doc 1044218091</p>
+            <p className="mt-3">Agradecimiento a Jhonatan Castro</p>
           </div>
         </div>
 
