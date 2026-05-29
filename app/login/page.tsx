@@ -123,6 +123,7 @@ export default function LoginPage() {
           <div className="mt-12 text-[11px] font-mono uppercase tracking-wide text-ink-mute">
             <p>SIST0200 · Lógica y Programación</p>
             <p className="mt-1">Juan Gutiérrez · Doc 1044218091</p>
+            <p className="mt-3 text-ink">Agradecimiento a Jhonatan Castro</p>
           </div>
         </div>
 
